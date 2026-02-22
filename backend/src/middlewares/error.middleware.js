@@ -7,7 +7,7 @@ const errorHandler = (err, req, res, next) => {
         message: err.message || "Internal Server Error",
         errors: err.errors || [],
         data: err.data || null,
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+        stack:  err.stack || null
     });
 
 };

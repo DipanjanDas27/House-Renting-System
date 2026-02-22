@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: house_rent_pg18
+    restart: always
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:
