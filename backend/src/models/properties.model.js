@@ -2,9 +2,7 @@ import { pool } from "../config/db.js";
 
 export const createPropertiesTable = async () => {
   const query = `
-    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-    CREATE TABLE IF NOT EXISTS properties (
+      CREATE TABLE IF NOT EXISTS properties (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
       owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -39,6 +37,7 @@ export const createPropertiesTable = async () => {
     CREATE INDEX IF NOT EXISTS idx_properties_owner ON properties(owner_id);
     CREATE INDEX IF NOT EXISTS idx_properties_city ON properties(city);
     CREATE INDEX IF NOT EXISTS idx_properties_price ON properties(rent_amount);
+    CREATE INDEX idx_property_rooms ON properties(available_rooms);
   `;
 
   await pool.query(query);

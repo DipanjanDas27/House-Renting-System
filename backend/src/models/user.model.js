@@ -2,9 +2,7 @@ import { pool } from "../config/db.js";
 
 export const createUsersTable = async () => {
   const query = `
-    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-    CREATE TABLE IF NOT EXISTS users (
+     CREATE TABLE IF NOT EXISTS users (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
       full_name VARCHAR(100) NOT NULL,

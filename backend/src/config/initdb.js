@@ -1,8 +1,17 @@
+import { createPaymentsTable } from "../models/payment.model.js";
+import { createPropertiesTable } from "../models/properties.model.js";
+import { createRentalTable } from "../models/rental.model.js";
+import { createUsersTable } from "../models/user.model.js";
 import { pool } from "./db.js";
 
 export const initializeDatabase = async () => {
   try {
     await pool.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`);
+    await pool.query(`CREATE EXTENSION IF NOT EXISTS btree_gist;`);
+    await createUsersTable();
+    await createPropertiesTable();
+    await createRentalTable();
+    await createPaymentsTable();
     console.log("pgcrypto extension ensured");
     console.log("Database initialized successfully");
   } catch (err) {

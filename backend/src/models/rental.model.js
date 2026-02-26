@@ -13,7 +13,7 @@ export const createRentalTable = async () => {
       end_date DATE NOT NULL CHECK (end_date > start_date),
 
       monthly_rent NUMERIC(10,2) NOT NULL CHECK (monthly_rent > 0),
-      security_paid BOOLEAN DEFAULT FALSE;
+      security_paid BOOLEAN DEFAULT FALSE,
 
       agreement_document_url TEXT NOT NULL,
 
@@ -27,9 +27,19 @@ export const createRentalTable = async () => {
     CREATE INDEX IF NOT EXISTS idx_rental_tenant ON rental_agreements(tenant_id);
     CREATE INDEX IF NOT EXISTS idx_rental_owner ON rental_agreements(owner_id);
     CREATE INDEX IF NOT EXISTS idx_rental_property ON rental_agreements(property_id);
+    CREATE INDEX IF NOT EXISTS idx_rental_dates ON rental_agreements(property_id, start_date, end_date);
   `;
 
   await pool.query(query);
+  await pool.query(`
+  ALTER TABLE rental_agreements
+  ADD CONSTRAINT no_overlapping_rentals
+  EXCLUDE USING gist (
+    property_id WITH =,
+    daterange(start_date, end_date, '[]') WITH &&
+  )
+  WHERE (status = 'active');
+`);
 };
 
 export const createRental = async (data, db = pool) => {
@@ -51,8 +61,8 @@ export const createRental = async (data, db = pool) => {
     data.end_date,
     data.monthly_rent,
     data.agreement_document_url,
-    data.status ,
-    data.security_paid 
+    data.status,
+    data.security_paid
   ];
 
   const { rows } = await db.query(query, values);

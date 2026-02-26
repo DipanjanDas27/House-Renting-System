@@ -2,7 +2,6 @@ import express from "express"
 import cors from "cors"
 import cookieparser from "cookie-parser"
 import { errorHandler } from "./middlewares/error.middleware.js"
-import { createUsersTable } from "./models/user.model.js"
 
 const app = express()
 

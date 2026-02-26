@@ -16,9 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-    CREATE TABLE IF NOT EXISTS properties (
+CREATE TABLE IF NOT EXISTS properties (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
       owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -50,10 +48,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE INDEX IF NOT EXISTS idx_properties_owner ON properties(owner_id);
-    CREATE INDEX IF NOT EXISTS idx_properties_city ON properties(city);
-    CREATE INDEX IF NOT EXISTS idx_properties_price ON properties(rent_amount);
-
 CREATE TABLE IF NOT EXISTS rental_agreements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -77,6 +71,13 @@ CREATE TABLE IF NOT EXISTS rental_agreements (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE rental_agreements
+  ADD CONSTRAINT no_overlapping_rentals
+  EXCLUDE USING gist (
+    property_id WITH =,
+    daterange(start_date, end_date, '[]') WITH &&
+  )
+  WHERE (status = 'active');
 
 CREATE TABLE IF NOT EXISTS payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
