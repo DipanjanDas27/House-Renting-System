@@ -8,11 +8,11 @@ export const initializeDatabase = async () => {
   try {
     await pool.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`);
     await pool.query(`CREATE EXTENSION IF NOT EXISTS btree_gist;`);
+    console.log("extensions added successfully");
     await createUsersTable();
     await createPropertiesTable();
     await createRentalTable();
     await createPaymentsTable();
-    console.log("pgcrypto extension ensured");
     console.log("Database initialized successfully");
   } catch (err) {
     console.error("Database initialization failed:", err.message);

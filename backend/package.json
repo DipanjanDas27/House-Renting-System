@@ -23,7 +23,8 @@
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
-    "pg": "^8.18.0"
+    "pg": "^8.18.0",
+    "redis": "^5.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
