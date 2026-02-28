@@ -30,6 +30,14 @@ export const createPaymentService = async ({
   if (tenant.role !== "tenant")
     throw new ApiError(403, "Only tenants can make payments");
 
+  const rental = await getRentalById(agreement_id);
+
+  if (!rental)
+    throw new ApiError(404, "Rental not found");
+
+  if (rental.status === "cancelled")
+    throw new ApiError( 400, "Payment not allowed for this rental status");
+
   const payment = await createPayment({
     agreement_id,
     tenant_id,
@@ -56,12 +64,13 @@ export const createPaymentService = async ({
       db
     );
     if (!result) throw new ApiError(500, "Failed to update payment status");
+    
     sendMail({
       to: tenant.email,
       subject: "Payment Successful - Dwellio",
       html: `<p>Your payment of ₹${amount} has been received successfully.</p>`,
     });
-    
+
     sendMail({
       to: owner.email,
       subject: "Payment Received - Dwellio",

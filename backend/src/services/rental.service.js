@@ -6,6 +6,7 @@ import {
   deleteRental,
   getRentalById,
   updateRentalAfterPayment,
+  renewRentalDatesAndStatus
 } from "../models/rental.model.js";
 
 import { pool } from "../config/db.js";
@@ -14,8 +15,7 @@ import { getPropertyById, updatePropertyAvailability, } from "../models/property
 import { uploadOnCloudinary } from "../config/cloudinary.js";
 import sendMail from "./mail.service.js";
 import { ApiError } from "../utils/apiError.js";
-import { createPaymentService } from "./payment.service.js";
-import { getPaymentByIdempotencyKey } from "../models/payment.model.js";
+import { createPayment, getPaymentByIdempotencyKey, updatePaymentStatus, getPaymentsByTenant } from "../models/payment.model.js";
 import { processDummyPayment, processDummyRefund } from "./dummyGateway.service.js";
 import { uploadOnCloudinary } from "../config/cloudinary.js";
 
@@ -43,7 +43,7 @@ export const createRentalService = async ({
       rental_status:
         existingPayment.payment_status === "success"
           ? "active"
-          : "failed",
+          : "pending",
       payment: existingPayment,
     };
   }
@@ -56,19 +56,10 @@ export const createRentalService = async ({
   const property = await getPropertyById(property_id);
   if (!property) throw new ApiError(404, "Property not found");
 
-  const gatewayResponse = await processDummyPayment({
-    amount: property.security_deposit,
-    mode: paymentMode,
-  });
-
-  if (gatewayResponse?.status !== "success") {
-    return {
-      payment_status: "failed",
-      reason: gatewayResponse?.reason || "Payment failed",
-    };
-  }
-
   const client = await pool.connect();
+
+  let rental;
+  let payment;
 
   try {
     await client.query("BEGIN");
@@ -92,7 +83,7 @@ export const createRentalService = async ({
       agreement_document_url = upload.secure_url;
     }
 
-    const rental = await createRental(
+    rental = await createRental(
       {
         property_id,
         tenant_id,
@@ -108,35 +99,85 @@ export const createRentalService = async ({
       client
     );
 
-    const payment = await createPaymentService(
+    payment = await createPayment(
       {
         agreement_id: rental.id,
         tenant_id,
         owner_id: lockedProperty.owner_id,
         amount: lockedProperty.security_deposit,
+        payment_status: "pending",
         idempotency_key,
-        gatewayResponse,
       },
       client
     );
 
-    if (payment?.payment_status !== "success") {
-      await client.query("COMMIT");
-      return { rental, payment_status: "failed" };
+    await client.query("COMMIT");
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+  const gatewayResponse = await processDummyPayment({
+    amount: property.security_deposit,
+    mode: paymentMode,
+  });
+
+  const updateClient = await pool.connect();
+
+  try {
+    await updateClient.query("BEGIN");
+
+    if (!gatewayResponse || gatewayResponse.status !== "success") {
+
+      await updatePaymentStatus(
+        payment.id,
+        "failed",
+        null,
+        updateClient
+      );
+
+      await updateClient.query("COMMIT");
+
+      return {
+        rental_status: "pending",
+        payment_status: "failed",
+        rental,
+      };
     }
 
-    await updateRentalAfterPayment(rental.id, client);
+    await updatePaymentStatus(
+      payment.id,
+      "success",
+      gatewayResponse.transaction_id,
+      updateClient
+    );
 
-    const updatedRooms = lockedProperty?.available_rooms - 1;
+    const lockedProperty = await getPropertyById(
+      property_id,
+      updateClient,
+      true
+    );
+
+    if (lockedProperty?.available_rooms <= 0)
+      throw new ApiError(400, "No rooms available");
+
+    await updateRentalAfterPayment(
+      rental.id,
+      updateClient
+    );
+
+    const updatedRooms = lockedProperty.available_rooms - 1;
 
     await updatePropertyAvailability(
       lockedProperty.id,
       updatedRooms,
       updatedRooms > 0,
-      client
+      updateClient
     );
 
-    await client.query("COMMIT");
+    await updateClient.query("COMMIT");
 
     sendMail({
       to: tenant.email,
@@ -147,25 +188,31 @@ export const createRentalService = async ({
     return {
       rental_status: "active",
       rental,
-      payment,
       transaction_id: gatewayResponse.transaction_id,
     };
 
   } catch (error) {
 
-    await client.query("ROLLBACK");
+    await updateClient.query("ROLLBACK");
 
-    await processDummyRefund({
-      transaction_id: gatewayResponse.transaction_id,
-    });
+    if (gatewayResponse?.status === "success") {
+      await processDummyRefund({
+        transaction_id: gatewayResponse.transaction_id,
+      });
+
+      await updatePaymentStatus(
+        payment.id,
+        "refunded"
+      );
+    }
 
     throw new ApiError(
       500,
-      "Rental failed after payment. Refund initiated."
+      "Rental activation failed. Refund initiated."
     );
 
   } finally {
-    client.release();
+    updateClient.release();
   }
 };
 
@@ -177,8 +224,6 @@ export const getTenantRentalsService = async (tenantId) => {
   if (!result) throw new ApiError(404, "No rentals found for this tenant");
   return result;
 };
-
-
 
 export const getOwnerRentalsService = async (ownerId) => {
   const owner = await getUserById(ownerId);
@@ -200,42 +245,111 @@ export const getRentalByIdService = async (rentalId) => {
   return rental;
 };
 
-export const updateRentalStatusService = async ({
-  rentalId,
-  ownerId,
-  status,
-}) => {
-  const rental = await getRentalById(rentalId);
-
-  if (!rental) {
-    throw new ApiError(404, "Rental agreement not found");
-  }
-
-  if (rental.owner_id !== ownerId) {
-    throw new ApiError(403, "Unauthorized to update this rental");
-  }
-
-  const allowedStatuses = ["pending", "active", "terminated", "cancelled"];
-  if (!allowedStatuses.includes(status)) {
-    throw new ApiError(400, "Invalid rental status");
-  }
-
-  const updatedRental = await updateRentalStatus(rentalId, status);
-
-  const tenant = await getUserById(updatedRental.tenant_id);
-
-  sendMail({
-    to: tenant.email,
-    subject: "Rental Status Updated - Dwellio",
-    html: `<p>Your rental agreement status has been updated to <b>${status}</b>.</p>`,
-  });
-
-  return updatedRental;
-};
-
 export const terminateRentalService = async ({
   rentalId,
 }) => {
+
+  const rental = await getRentalById(rentalId);
+
+  if (!rental)
+    throw new ApiError(404, "Rental not found");
+
+  if (rental.status !== "active")
+    throw new ApiError(400, "Only active rentals can be terminated");
+
+  const today = new Date();
+  const effectiveDate = new Date(today);
+  effectiveDate.setDate(
+    today.getDate() + (rental.notice_period || 0)
+  );
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    await client.query(`
+      UPDATE rental_agreements
+      SET
+        termination_requested_at = CURRENT_TIMESTAMP,
+        termination_effective_date = $1,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [effectiveDate, rentalId]);
+
+    await client.query("COMMIT");
+
+    return {
+      message: "Termination scheduled",
+      effective_date: effectiveDate,
+    };
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const terminateExpiredRentalsService = async () => {
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { rows } = await client.query(`
+      SELECT *
+      FROM rental_agreements
+      WHERE status = 'active'
+      AND termination_effective_date IS NOT NULL
+      AND termination_effective_date <= CURRENT_DATE
+      FOR UPDATE;
+    `);
+
+    for (const rental of rows) {
+
+      const property = await getPropertyById(
+        rental.property_id,
+        client,
+        true
+      );
+
+      const updatedRooms = property.available_rooms + 1;
+
+      await updatePropertyAvailability(
+        property.id,
+        updatedRooms,
+        true,
+        client
+      );
+
+      await updateRentalStatus(
+        rental.id,
+        "terminated",
+        client
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      terminated_count: rows.length,
+    };
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const cancelRentalService = async ({
+  rentalId,
+}) => {
+
   const rental = await getRentalById(rentalId);
 
   if (!rental)
@@ -243,20 +357,67 @@ export const terminateRentalService = async ({
 
   const today = new Date().toISOString().split("T")[0];
 
-  if (rental.status !== "terminated" && rental.end_date < today) {
-    await updateRentalStatus(rentalId, "terminated");
+  if (rental.status === "pending") {
+
+    await updateRentalStatus(
+      rentalId,
+      "cancelled"
+    );
+
+    return { message: "Rental cancelled successfully" };
   }
 
-  return { message: "Rental terminated successfully" };
+  if (
+    rental.status === "active" &&
+    rental.start_date > today
+  ) {
+
+    const payments = await getPaymentsByTenant(
+      rental.tenant_id
+    );
+
+    const payment = payments?.find(
+      (p) =>
+        p.agreement_id === rentalId &&
+        p.payment_status === "success"
+    );
+
+    if (payment) {
+
+      await processDummyRefund({
+        transaction_id: payment.transaction_id,
+      });
+
+      await updatePaymentStatus(
+        payment.id,
+        "refunded"
+      );
+    }
+
+    await updateRentalStatus(
+      rentalId,
+      "cancelled"
+    );
+
+    return {
+      message:
+        "Rental cancelled and payment refunded successfully",
+    };
+  }
+
+  throw new ApiError(
+    400,
+    "Rental cannot be cancelled at this stage"
+  );
 };
 
-export const deleteRentalService = async (rentalId,userId) => {
+export const deleteRentalService = async (rentalId, userId) => {
   const rental = await getRentalById(rentalId);
 
   if (rental?.status !== "cancelled" && rental?.status !== "terminated")
     throw new ApiError(404, "Only cancelled or terminated rentals can be deleted");
 
-  if(rental.owner_id !==  userId)
+  if (rental.owner_id !== userId)
     throw new ApiError(403, "Unauthorized to delete this rental");
 
   const deleted = await deleteRental(rentalId);
@@ -266,3 +427,159 @@ export const deleteRentalService = async (rentalId,userId) => {
 
   return { message: "Rental deleted successfully" };
 }
+
+export const renewRentalService = async ({
+  rentalId,
+  start_date,
+  end_date,
+  idempotency_key,
+  paymentMode = "auto",
+}) => {
+
+  if (!rentalId || !start_date || !end_date || !idempotency_key)
+    throw new ApiError(400, "Required fields missing");
+
+  const existingPayment = await getPaymentByIdempotencyKey(
+    idempotency_key
+  );
+
+  if (existingPayment) {
+    return {
+      rental_status:
+        existingPayment.payment_status === "success"
+          ? "active"
+          : "pending",
+      payment: existingPayment,
+    };
+  }
+
+  const rental = await getRentalById(rentalId);
+  if (!rental)
+    throw new ApiError(404, "Rental not found");
+
+  if (rental.status !== "terminated")
+    throw new ApiError(400, "Only terminated rentals can be renewed");
+
+  const property = await getPropertyById(rental.property_id);
+  if (!property)
+    throw new ApiError(404, "Property not found");
+
+  const client = await pool.connect();
+
+  let payment;
+
+  try {
+    await client.query("BEGIN");
+
+    payment = await createPayment(
+      {
+        agreement_id: rentalId,
+        tenant_id: rental.tenant_id,
+        owner_id: rental.owner_id,
+        amount: property.security_deposit,
+        payment_status: "pending",
+        idempotency_key,
+      },
+      client
+    );
+
+    await client.query("COMMIT");
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  const gatewayResponse = await processDummyPayment({
+    amount: property.security_deposit,
+    mode: paymentMode,
+  });
+
+  const updateClient = await pool.connect();
+
+  try {
+    await updateClient.query("BEGIN");
+
+    if (!gatewayResponse || gatewayResponse.status !== "success") {
+
+      await updatePaymentStatus(
+        payment.id,
+        "failed",
+        null,
+        updateClient
+      );
+
+      await updateClient.query("COMMIT");
+
+      return {
+        rental_status: "terminated",
+        payment_status: "failed",
+      };
+    }
+
+    await updatePaymentStatus(
+      payment.id,
+      "success",
+      gatewayResponse.transaction_id,
+      updateClient
+    );
+
+    const lockedProperty = await getPropertyById(
+      rental.property_id,
+      updateClient,
+      true
+    );
+
+    if (lockedProperty.available_rooms <= 0)
+      throw new ApiError(400, "No rooms available");
+
+    const updatedRooms = lockedProperty.available_rooms - 1;
+
+    await updatePropertyAvailability(
+      lockedProperty.id,
+      updatedRooms,
+      updatedRooms > 0,
+      updateClient
+    );
+
+    await renewRentalDatesAndStatus(
+      rentalId,
+      start_date,
+      end_date,
+      "active",
+      updateClient
+    );
+
+    await updateClient.query("COMMIT");
+
+    return {
+      rental_status: "active",
+      transaction_id: gatewayResponse.transaction_id,
+    };
+
+  } catch (error) {
+
+    await updateClient.query("ROLLBACK");
+
+    if (gatewayResponse?.status === "success") {
+      await processDummyRefund({
+        transaction_id: gatewayResponse.transaction_id,
+      });
+
+      await updatePaymentStatus(
+        payment.id,
+        "refunded"
+      );
+    }
+
+    throw new ApiError(
+      500,
+      "Renewal activation failed. Refund initiated."
+    );
+
+  } finally {
+    updateClient.release();
+  }
+};

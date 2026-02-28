@@ -117,6 +117,35 @@ export const updateRentalAfterPayment = async (rentalId, db = pool) => {
   return rows[0];
 };
 
+export const renewRentalDatesAndStatus = async (
+  rentalId,
+  start_date,
+  end_date,
+  status,
+  db = pool
+) => {
+
+  const query = `
+    UPDATE rental_agreements
+    SET
+      start_date = $1,
+      end_date = $2,
+      status = $3,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $4
+    RETURNING *;
+  `;
+
+  const { rows } = await db.query(query, [
+    start_date,
+    end_date,
+    status,
+    rentalId,
+  ]);
+
+  return rows[0];
+};
+
 export const deleteRental = async (id) => {
   const { rows } = await pool.query(
     `DELETE FROM rental_agreements WHERE id = $1 RETURNING id;`,
