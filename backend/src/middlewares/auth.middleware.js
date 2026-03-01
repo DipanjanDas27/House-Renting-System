@@ -1,38 +1,29 @@
+import { verifyAccessToken } from "../utils/token.js";
 import { asyncHandler } from "../utils/asynchandler.js";
 import { ApiError } from "../utils/apiError.js";
-import { verifyAccessToken } from "../utils/token.js";
 import { getUserById } from "../models/user.model.js";
 
 export const verifyAuth = asyncHandler(async (req, res, next) => {
+
   const token =
     req.cookies?.accessToken ||
     req.header("Authorization")?.replace("Bearer ", "");
 
-  if (!token) {
+  if (!token)
     throw new ApiError(401, "Unauthorized request");
-  }
 
-  let decoded;
-  let user;
+  const decoded = verifyAccessToken(token);
 
-  try {
-    decoded = verifyAccessToken(token);
-  } catch (error) {
-    throw new ApiError(401, "Invalid or expired token");
-  }
+  const user = await getUserById(decoded.id);
 
-  if (decoded.role === "tenant") {
-    user = await getUserById(decoded._id);
-    if (!user) throw new ApiError(401, "Invalid token");
-    req.tenant = user;
-  } 
-  else if (decoded.role === "owner") {
-    user = await getUserById(decoded._id);
-    if (!user) throw new ApiError(401, "Invalid token");
-    req.owner = user;
-  }
-  else {
+  if (!user)
     throw new ApiError(401, "Invalid token");
-  }
+
+  req.user = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  };
+
   next();
 });

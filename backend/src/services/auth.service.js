@@ -15,6 +15,7 @@ import {
 import { uploadOnCloudinary } from "../config/cloudinary.js";
 import sendMail from "./mail.service.js";
 import { ApiError } from "../utils/apiError.js";
+import { registerTemplate, loginTemplate } from "../templates/authMail.template.js";
 
 export const registerUser = async ({
   full_name,
@@ -55,10 +56,10 @@ export const registerUser = async ({
 
   await updateRefreshToken(user.id, refreshToken);
 
-  sendMail({
+  await sendMail({
     to: user.email,
-    subject: "Welcome to Rentora",
-    html: `<h2>Welcome ${user.full_name}</h2><p>Your account has been created successfully.</p>`,
+    subject: "Welcome to Dwellio",
+    html: registerTemplate(user.full_name),
   });
 
   return {
@@ -83,6 +84,12 @@ export const loginUser = async ({ email, password }) => {
   const refreshToken = generateRefreshToken(user);
 
   await updateRefreshToken(user.id, refreshToken);
+
+  await sendMail({
+    to: user.email,
+    subject: "New Login to Your Dwellio Account",
+    html: loginTemplate(),
+  });
 
   return {
     accessToken,

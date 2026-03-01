@@ -89,8 +89,8 @@ export const getRentalById = async (rentalId) => {
   return rows[0];
 };
 
-export const updateRentalStatus = async (id, status) => {
-  const { rows } = await pool.query(
+export const updateRentalStatus = async (id, status, db = pool) => {
+  const { rows } = await db.query(
     `UPDATE rental_agreements
      SET status = $1,
          updated_at = CURRENT_TIMESTAMP

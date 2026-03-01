@@ -18,6 +18,9 @@ import { ApiError } from "../utils/apiError.js";
 import { createPayment, getPaymentByIdempotencyKey, updatePaymentStatus, getPaymentsByTenant } from "../models/payment.model.js";
 import { processDummyPayment, processDummyRefund } from "./dummyGateway.service.js";
 import { uploadOnCloudinary } from "../config/cloudinary.js";
+import { rentalActivatedTemplate, rentalCreatedTemplate, rentalCancelledTemplate, rentalRenewedTemplate, rentalTerminatedTemplate, ownerRentalActivatedTemplate, ownerRentalRequestTemplate, ownerRentalCancelledTemplate, ownerRentalRenewedTemplate, ownerRentalTerminatedTemplate } from "../templates/rentalMail.template.js"
+
+import { paymentCreatedTemplate, paymentFailedTemplate, paymentSuccessTemplate, ownerPaymentReceivedTemplate } from "../templates/paymentMail.template.js";
 
 export const createRentalService = async ({
   property_id,
@@ -34,9 +37,7 @@ export const createRentalService = async ({
   if (!idempotency_key)
     throw new ApiError(400, "Idempotency key required");
 
-  const existingPayment = await getPaymentByIdempotencyKey(
-    idempotency_key
-  );
+  const existingPayment = await getPaymentByIdempotencyKey(idempotency_key);
 
   if (existingPayment) {
     return {
@@ -56,6 +57,9 @@ export const createRentalService = async ({
   const property = await getPropertyById(property_id);
   if (!property) throw new ApiError(404, "Property not found");
 
+  const owner = await getUserById(property.owner_id);
+  if (!owner) throw new ApiError(404, "Owner not found");
+
   const client = await pool.connect();
 
   let rental;
@@ -64,13 +68,9 @@ export const createRentalService = async ({
   try {
     await client.query("BEGIN");
 
-    const lockedProperty = await getPropertyById(
-      property_id,
-      client,
-      true
-    );
+    const lockedProperty = await getPropertyById(property_id, client, true);
 
-    if (lockedProperty?.available_rooms <= 0)
+    if (lockedProperty.available_rooms <= 0)
       throw new ApiError(400, "No rooms available");
 
     let agreement_document_url = null;
@@ -113,12 +113,31 @@ export const createRentalService = async ({
 
     await client.query("COMMIT");
 
+    await sendMail({
+      to: tenant.email,
+      subject: "Rental Request Submitted - Dwellio",
+      html: rentalCreatedTemplate(),
+    });
+
+    await sendMail({
+      to: owner.email,
+      subject: "New Rental Request - Dwellio",
+      html: ownerRentalRequestTemplate(lockedProperty.title, tenant.full_name),
+    });
+
+    await sendMail({
+      to: tenant.email,
+      subject: "Payment Initiated - Dwellio",
+      html: paymentCreatedTemplate(lockedProperty.security_deposit),
+    });
+
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
   }
+
   const gatewayResponse = await processDummyPayment({
     amount: property.security_deposit,
     mode: paymentMode,
@@ -140,6 +159,12 @@ export const createRentalService = async ({
 
       await updateClient.query("COMMIT");
 
+      await sendMail({
+        to: tenant.email,
+        subject: "Payment Failed - Dwellio",
+        html: paymentFailedTemplate(property.security_deposit),
+      });
+
       return {
         rental_status: "pending",
         payment_status: "failed",
@@ -160,13 +185,10 @@ export const createRentalService = async ({
       true
     );
 
-    if (lockedProperty?.available_rooms <= 0)
+    if (lockedProperty.available_rooms <= 0)
       throw new ApiError(400, "No rooms available");
 
-    await updateRentalAfterPayment(
-      rental.id,
-      updateClient
-    );
+    await updateRentalAfterPayment(rental.id, updateClient);
 
     const updatedRooms = lockedProperty.available_rooms - 1;
 
@@ -179,10 +201,31 @@ export const createRentalService = async ({
 
     await updateClient.query("COMMIT");
 
-    sendMail({
+    await sendMail({
+      to: tenant.email,
+      subject: "Payment Successful - Dwellio",
+      html: paymentSuccessTemplate(property.security_deposit),
+    });
+
+    await sendMail({
+      to: owner.email,
+      subject: "Payment Received - Dwellio",
+      html: ownerPaymentReceivedTemplate(
+        tenant.full_name,
+        property.security_deposit
+      ),
+    });
+
+    await sendMail({
       to: tenant.email,
       subject: "Rental Activated - Dwellio",
-      html: `<p>Your rental has been activated successfully.</p>`,
+      html: rentalActivatedTemplate(),
+    });
+
+    await sendMail({
+      to: owner.email,
+      subject: "Your Property Is Now Rented - Dwellio",
+      html: ownerRentalActivatedTemplate(property.title),
     });
 
     return {
@@ -196,14 +239,18 @@ export const createRentalService = async ({
     await updateClient.query("ROLLBACK");
 
     if (gatewayResponse?.status === "success") {
+
       await processDummyRefund({
         transaction_id: gatewayResponse.transaction_id,
       });
 
-      await updatePaymentStatus(
-        payment.id,
-        "refunded"
-      );
+      await updatePaymentStatus(payment.id, "refunded");
+
+      await sendMail({
+        to: tenant.email,
+        subject: "Refund Processed - Dwellio",
+        html: refundTemplate(property.security_deposit),
+      });
     }
 
     throw new ApiError(
@@ -215,7 +262,6 @@ export const createRentalService = async ({
     updateClient.release();
   }
 };
-
 export const getTenantRentalsService = async (tenantId) => {
   const tenant = await getUserById(tenantId);
   if (!tenant) throw new ApiError(404, "Tenant not found");
@@ -330,6 +376,20 @@ export const terminateExpiredRentalsService = async () => {
         "terminated",
         client
       );
+      const tenant = await getUserById(rental.tenant_id, client);
+      const owner = await getUserById(rental.owner_id, client);
+
+      await sendMail({
+        to: tenant.email,
+        subject: "Rental Terminated - Dwellio",
+        html: rentalTerminatedTemplate(),
+      });
+
+      await sendMail({
+        to: owner.email,
+        subject: "Rental Agreement Terminated - Dwellio",
+        html: ownerRentalTerminatedTemplate(property.title),
+      });
     }
 
     await client.query("COMMIT");
@@ -399,6 +459,17 @@ export const cancelRentalService = async ({
       "cancelled"
     );
 
+    await sendMail({
+      to: tenant.email,
+      subject: "Rental Cancelled - Dwellio",
+      html: rentalCancelledTemplate(),
+    });
+
+    await sendMail({
+      to: owner.email,
+      subject: "Rental Cancelled by Tenant - Dwellio",
+      html: ownerRentalCancelledTemplate(property.title),
+    });
     return {
       message:
         "Rental cancelled and payment refunded successfully",
@@ -439,9 +510,7 @@ export const renewRentalService = async ({
   if (!rentalId || !start_date || !end_date || !idempotency_key)
     throw new ApiError(400, "Required fields missing");
 
-  const existingPayment = await getPaymentByIdempotencyKey(
-    idempotency_key
-  );
+  const existingPayment = await getPaymentByIdempotencyKey(idempotency_key);
 
   if (existingPayment) {
     return {
@@ -460,9 +529,9 @@ export const renewRentalService = async ({
   if (rental.status !== "terminated")
     throw new ApiError(400, "Only terminated rentals can be renewed");
 
+  const tenant = await getUserById(rental.tenant_id);
+  const owner = await getUserById(rental.owner_id);
   const property = await getPropertyById(rental.property_id);
-  if (!property)
-    throw new ApiError(404, "Property not found");
 
   const client = await pool.connect();
 
@@ -484,6 +553,12 @@ export const renewRentalService = async ({
     );
 
     await client.query("COMMIT");
+
+    await sendMail({
+      to: tenant.email,
+      subject: "Payment Initiated - Dwellio",
+      html: paymentCreatedTemplate(property.security_deposit),
+    });
 
   } catch (error) {
     await client.query("ROLLBACK");
@@ -513,6 +588,12 @@ export const renewRentalService = async ({
 
       await updateClient.query("COMMIT");
 
+      await sendMail({
+        to: tenant.email,
+        subject: "Payment Failed - Dwellio",
+        html: paymentFailedTemplate(property.security_deposit),
+      });
+
       return {
         rental_status: "terminated",
         payment_status: "failed",
@@ -535,6 +616,14 @@ export const renewRentalService = async ({
     if (lockedProperty.available_rooms <= 0)
       throw new ApiError(400, "No rooms available");
 
+    await renewRentalDatesAndStatus(
+      rentalId,
+      start_date,
+      end_date,
+      "active",
+      updateClient
+    );
+
     const updatedRooms = lockedProperty.available_rooms - 1;
 
     await updatePropertyAvailability(
@@ -544,15 +633,34 @@ export const renewRentalService = async ({
       updateClient
     );
 
-    await renewRentalDatesAndStatus(
-      rentalId,
-      start_date,
-      end_date,
-      "active",
-      updateClient
-    );
-
     await updateClient.query("COMMIT");
+
+    await sendMail({
+      to: tenant.email,
+      subject: "Payment Successful - Dwellio",
+      html: paymentSuccessTemplate(property.security_deposit),
+    });
+
+    await sendMail({
+      to: owner.email,
+      subject: "Payment Received - Dwellio",
+      html: ownerPaymentReceivedTemplate(
+        tenant.full_name,
+        property.security_deposit
+      ),
+    });
+
+    await sendMail({
+      to: tenant.email,
+      subject: "Rental Renewed Successfully - Dwellio",
+      html: rentalRenewedTemplate(),
+    });
+
+    await sendMail({
+      to: owner.email,
+      subject: "Rental Renewed - Dwellio",
+      html: ownerRentalRenewedTemplate(property.title),
+    });
 
     return {
       rental_status: "active",
@@ -564,19 +672,23 @@ export const renewRentalService = async ({
     await updateClient.query("ROLLBACK");
 
     if (gatewayResponse?.status === "success") {
+
       await processDummyRefund({
         transaction_id: gatewayResponse.transaction_id,
       });
 
-      await updatePaymentStatus(
-        payment.id,
-        "refunded"
-      );
+      await updatePaymentStatus(payment.id, "refunded");
+
+      await sendMail({
+        to: tenant.email,
+        subject: "Refund Processed - Dwellio",
+        html: refundTemplate(property.security_deposit),
+      });
     }
 
     throw new ApiError(
       500,
-      "Renewal activation failed. Refund initiated."
+      "Rental renewal failed. Refund initiated."
     );
 
   } finally {

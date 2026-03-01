@@ -7,6 +7,7 @@ import {
   updateUserService,
   updateUserImageService,
   changePasswordService,
+  resetPasswordService,
   deleteUserService,
 } from "../services/user.service.js";
 
@@ -86,7 +87,7 @@ export const changePassword = asyncHandler(async (req, res) => {
   if (!oldPassword || !newPassword)
     throw new ApiError(400, "Old password and new password are required");
 
-  const result = await changePassword({
+  const result = await changePasswordService({
     userId: req.user.id,
     oldPassword,
     newPassword,
@@ -117,7 +118,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
   if (!newPassword)
     throw new ApiError(400, "New password is required");
 
-  const result = await resetPassword({
+  const result = await resetPasswordService({
     token,
     newPassword,
   });

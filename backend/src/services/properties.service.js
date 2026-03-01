@@ -12,7 +12,7 @@ import { getUserById } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../config/cloudinary.js";
 import sendMail from "./mail.service.js";
 import { ApiError } from "../utils/apiError.js";
-
+import { propertyCreatedTemplate } from "../templates/propertyMail.template.js"
 
 
 export const createPropertyService = async ({
@@ -44,15 +44,14 @@ export const createPropertyService = async ({
 
   if (!property) throw new ApiError(500, "Failed to create property");
 
-  sendMail({
+  await sendMail({
     to: owner.email,
     subject: "Property Listed - Dwellio",
-    html: `<p>Your property "${property.title}" has been listed successfully.</p>`,
+    html: propertyCreatedTemplate(property.title),
   });
 
   return property;
 };
-
 
 
 export const getPropertyService = async (propertyId) => {
@@ -60,7 +59,6 @@ export const getPropertyService = async (propertyId) => {
   if (!property) throw new ApiError(404, "Property not found");
   return property;
 };
-
 
 
 export const getOwnerPropertiesService = async (ownerId) => {
@@ -72,7 +70,6 @@ export const getOwnerPropertiesService = async (ownerId) => {
     throw new ApiError(404, "No properties found for this owner");
   return result;
 };
-
 
 
 export const getFilteredPropertiesService = async ({
@@ -94,7 +91,6 @@ export const getFilteredPropertiesService = async ({
 };
 
 
-
 export const updatePropertyService = async ({
   propertyId,
   ownerId,
@@ -111,7 +107,6 @@ export const updatePropertyService = async ({
 
   return updated;
 };
-
 
 
 export const updatePropertyImageService = async ({
@@ -140,7 +135,6 @@ export const updatePropertyImageService = async ({
   if (!updated) throw new ApiError(500, "Failed to update property image");
   return updated;
 };
-
 
 
 export const deletePropertyService = async ({

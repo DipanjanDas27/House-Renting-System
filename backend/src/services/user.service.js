@@ -12,7 +12,7 @@ import { verifyAccessToken } from "../utils/token.js";
 import { uploadOnCloudinary } from "../config/cloudinary.js";
 import sendMail from "./mail.service.js";
 import { ApiError } from "../utils/apiError.js";
-
+import { passwordUpdatedTemplate, accountDeletedTemplate, passwordResetSuccessTemplate } from "../templates/userMail.template.js";
 
 
 export const getProfile = async (userId) => {
@@ -36,12 +36,6 @@ export const updateProfileDetails = async ({
     full_name,
     email,
     phone,
-  });
-
-  sendMail({
-    to: existingUser.email,
-    subject: "Profile Updated - Rentora",
-    html: `<p>Hello ${updatedUser.full_name}, your profile details were updated.</p>`,
   });
 
   return updatedUser;
@@ -71,7 +65,7 @@ export const updateUserProfileImage = async ({ userId, file }) => {
 
 
 
-export const changePassword = async ({
+export const changePasswordService = async ({
   userId,
   oldPassword,
   newPassword,
@@ -94,16 +88,16 @@ export const changePassword = async ({
 
   await updateUserPassword(userId, newHashed);
 
-  sendMail({
+  await sendMail({
     to: user.email,
-    subject: "Password Changed - Rentora",
-    html: `<p>Hello ${user.full_name}, your password has been changed successfully.</p>`,
+    subject: "Your Dwellio Password Was Updated",
+    html: passwordUpdatedTemplate(),
   });
 
   return { message: "Password updated successfully" };
 };
 
-export const resetPassword = async ({
+export const resetPasswordService = async ({
   token,
   newPassword,
 }) => {
@@ -121,10 +115,10 @@ export const resetPassword = async ({
 
   await updateRefreshToken(user.id, null);
 
-  sendMail({
+  await sendMail({
     to: user.email,
-    subject: "Password Reset Successful - Rentora",
-    html: `<p>Hello ${user.full_name}, your password has been reset successfully.</p>`,
+    subject: "Password Reset Successful - Dwellio",
+    html: passwordResetSuccessTemplate(),
   });
 
   return { message: "Password reset successfully" };
@@ -136,5 +130,11 @@ export const deleteUserService = async (userId) => {
 
   await updateRefreshToken(userId, null);
 
-  return await deleteUser(userId);
+  await deleteUser(userId);
+  await sendMail({
+    to: user.email,
+    subject: "Account Deleted - Dwellio",
+    html: accountDeletedTemplate(),
+  });
+   return { message: "Account deleted successfully" };
 };

@@ -6,6 +6,7 @@ import { getUserByEmail } from "../models/user.model.js";
 
 import { generateResetToken, verifyResetToken } from "../utils/token.js";
 import { ApiError } from "../utils/apiError.js";
+import { otpTemplate, forgotPasswordTemplate } from "../templates/userMail.template.js"
 
 export const sendOtpService = async (user) => {
     if (!user?.email) {
@@ -22,8 +23,8 @@ export const sendOtpService = async (user) => {
 
     await sendMail({
         to: user.email,
-        subject: "Dwellio OTP Verification",
-        html: `<h3>Your OTP is: ${otp}</h3>`,
+        subject: "Your Dwellio Verification Code",
+        html: otpTemplate(otp),
     });
 
     return true;
@@ -66,11 +67,11 @@ export const sendForgotPasswordOtpService = async (email) => {
     );
 
     const resetToken = generateResetToken(user);
-    
+
     await sendMail({
-        to: email,
-        subject: "Dwellio Password Reset OTP",
-        html: `<h3>Your OTP is: ${otp}</h3>`,
+        to: user.email,
+        subject: "Reset Your Dwellio Password",
+        html: forgotPasswordTemplate(otp),
     });
 
     return resetToken;
@@ -82,9 +83,9 @@ export const verifyForgotPasswordOtpService = async (
 ) => {
     if (!otp)
         throw new ApiError(400, "OTP is required");
-    if (!token)        
+    if (!token)
         throw new ApiError(400, "Reset token is required");
-    
+
     const decoded = verifyResetToken(token);
 
     if (decoded.purpose !== "password_reset")
