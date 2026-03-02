@@ -281,10 +281,18 @@ export const getOwnerRentalsService = async (ownerId) => {
 };
 
 export const getRentalByIdService = async (rentalId) => {
+
   const rental = await getRentalById(rentalId);
 
   if (!rental) {
     throw new ApiError(404, "Rental agreement not found");
+  }
+
+  if (
+    rental.tenant_id !== userId &&
+    rental.owner_id !== userId
+  ) {
+    throw new ApiError(403, "Forbidden: Access denied");
   }
 
   return rental;

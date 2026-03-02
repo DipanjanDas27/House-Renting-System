@@ -160,21 +160,35 @@ export const getOwnerPaymentsService = async (ownerId) => {
   return result;
 };
 
-export const getPaymentByIdService = async (paymentId) => {
+export const getPaymentByIdService = async (paymentId, userId) => {
   const payment = await getPaymentById(paymentId);
 
   if (!payment) {
     throw new ApiError(404, "Payment not found");
   }
 
+  if (
+    payment.tenant_id !== userId &&
+    payment.owner_id !== userId
+  ) {
+    throw new ApiError(403, "Forbidden: Access denied");
+  }
+
   return payment;
 };
 
-export const getPaymentByTransactionIdService = async (transactionId) => {
+export const getPaymentByTransactionIdService = async (transactionId, userId) => {
   const payment = await getPaymentByTransactionId(transactionId);
 
   if (!payment) {
     throw new ApiError(404, "Payment not found");
+  }
+
+  if (
+    payment.tenant_id !== userId &&
+    payment.owner_id !== userId
+  ) {
+    throw new ApiError(403, "Forbidden: Access denied");
   }
 
   return payment;
