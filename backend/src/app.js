@@ -17,13 +17,13 @@ app.use(cookieparser())
 app.use(express.json({ limit: "20kb" }))
 app.use(express.urlencoded({ extended: true, limit: "20kb" }))
 app.use(express.static("public"))
-app.use(errorHandler)
-app.use(globalLimiter);
 
+app.use(globalLimiter);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/properties", propertyRoutes);
 app.use("/api/v1/rentals", rentalRoutes);
 app.use("/api/v1/payments", paymentRoutes);
+app.use(errorHandler)
 
 export default app;

@@ -7,7 +7,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "NODE_ENV=test node -r dotenv/config --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --detectOpenHandles",
     "start": "node src/index.js",
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
   },
