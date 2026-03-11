@@ -2,7 +2,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit"
 import api from "./api"
 
 export const getCurrentUser = createAsyncThunk(
-  "user/getCurrentUser",
+  "tenant/getCurrentUser",
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get("/users/me")
@@ -14,7 +14,7 @@ export const getCurrentUser = createAsyncThunk(
 )
 
 export const getUserDetails = createAsyncThunk(
-  "user/getUserDetails",
+  "tenant/getUserDetails",
   async (userId, { rejectWithValue }) => {
     try {
       const res = await api.get(`/users/${userId}/details`)
@@ -26,7 +26,7 @@ export const getUserDetails = createAsyncThunk(
 )
 
 export const updateProfile = createAsyncThunk(
-  "user/updateProfile",
+  "tenant/updateProfile",
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.patch("/users/me/updateprofile", data)
@@ -38,7 +38,7 @@ export const updateProfile = createAsyncThunk(
 )
 
 export const updateProfileImage = createAsyncThunk(
-  "user/updateProfileImage",
+  "tenant/updateProfileImage",
   async (formData, { rejectWithValue }) => {
     try {
       const res = await api.patch("/users/me/image", formData, {
@@ -52,7 +52,7 @@ export const updateProfileImage = createAsyncThunk(
 )
 
 export const deleteAccount = createAsyncThunk(
-  "user/deleteAccount",
+  "tenant/deleteAccount",
   async (userId, { rejectWithValue }) => {
     try {
       const res = await api.delete(`/users/${userId}`)

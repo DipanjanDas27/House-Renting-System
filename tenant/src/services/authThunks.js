@@ -2,7 +2,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit"
 import api from "./api"
 
 export const registerUser = createAsyncThunk(
-  "auth/registerUser",
+  "tenantAuth/registerUser",
   async (formData, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/register", formData, {
@@ -16,7 +16,7 @@ export const registerUser = createAsyncThunk(
 )
 
 export const loginUser = createAsyncThunk(
-  "auth/loginUser",
+  "tenantAuth/loginUser",
   async (credentials, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/login", credentials)
@@ -28,7 +28,7 @@ export const loginUser = createAsyncThunk(
 )
 
 export const logoutUser = createAsyncThunk(
-  "auth/logoutUser",
+  "tenantAuth/logoutUser",
   async (_, { rejectWithValue }) => {
     try {
       await api.post("/auth/logout")
@@ -40,7 +40,7 @@ export const logoutUser = createAsyncThunk(
 )
 
 export const sendOtp = createAsyncThunk(
-  "auth/sendOtp",
+  "tenantAuth/sendOtp",
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/send-otp")
@@ -52,7 +52,7 @@ export const sendOtp = createAsyncThunk(
 )
 
 export const verifyOtp = createAsyncThunk(
-  "auth/verifyOtp",
+  "tenantAuth/verifyOtp",
   async (otp, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/verify-otp", { otp })
@@ -64,7 +64,7 @@ export const verifyOtp = createAsyncThunk(
 )
 
 export const sendForgotPasswordOtp = createAsyncThunk(
-  "auth/sendForgotPasswordOtp",
+  "tenantAuth/sendForgotPasswordOtp",
   async (email, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/forgot-password", { email })
@@ -76,7 +76,7 @@ export const sendForgotPasswordOtp = createAsyncThunk(
 )
 
 export const verifyForgotPasswordOtp = createAsyncThunk(
-  "auth/verifyForgotPasswordOtp",
+  "tenantAuth/verifyForgotPasswordOtp",
   async (otp, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/verify-forgot-otp", { otp })
@@ -88,7 +88,7 @@ export const verifyForgotPasswordOtp = createAsyncThunk(
 )
 
 export const resetPassword = createAsyncThunk(
-  "auth/resetPassword",
+  "tenantAuth/resetPassword",
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/reset-password", data)
@@ -100,7 +100,7 @@ export const resetPassword = createAsyncThunk(
 )
 
 export const changePassword = createAsyncThunk(
-  "auth/changePassword",
+  "tenantAuth/changePassword",
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.patch("/auth/me/change-password", data)
