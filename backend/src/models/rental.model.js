@@ -24,7 +24,6 @@ export const createRentalTable = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    
 
     CREATE INDEX IF NOT EXISTS idx_rental_tenant ON rental_agreements(tenant_id);
     CREATE INDEX IF NOT EXISTS idx_rental_owner ON rental_agreements(owner_id);

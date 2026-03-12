@@ -3,7 +3,7 @@ import { upload } from "../middlewares/multer.middleware.js";
 import { verifyAuth } from "../middlewares/auth.middleware.js";
 import { requireRole } from "../middlewares/role.middleware.js";
 
-import { getCurrentUser, updateProfile, updateProfileImage, deleteAccount } from "../controllers/user.controller.js";
+import { getCurrentUser, updateProfile, updateProfileImage, deleteAccount,getUserDetails } from "../controllers/user.controller.js";
 
 const router = express.Router();
 
