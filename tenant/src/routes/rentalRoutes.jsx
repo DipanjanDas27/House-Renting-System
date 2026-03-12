@@ -1,7 +1,7 @@
 import { lazy } from "react"
 import AuthLayout from "@/components/custom/AuthLayout.jsx"
 
-const Rentals = lazy(() => import("@/pages/rentals/Rentals"))
+const MyRentals = lazy(() => import("@/pages/rentals/MyRentals"))
 const RentalDetails = lazy(() => import("@/pages/rentals/RentalDetails"))
 const CreateRental = lazy(() => import("@/pages/rentals/CreateRental"))
 
@@ -10,7 +10,7 @@ const rentalRoutes = [
     path: "/rentals",
     element: (
       <AuthLayout authentication={true}>
-        <Rentals />
+        <MyRentals />
       </AuthLayout>
     )
   },
