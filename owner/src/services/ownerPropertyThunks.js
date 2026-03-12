@@ -1,5 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit"
-import api from "../../api/axios"
+import api from "./api"
 
 export const ownerCreateProperty = createAsyncThunk(
   "ownerProperty/createProperty",
@@ -20,6 +20,9 @@ export const ownerGetProperties = createAsyncThunk(
       const res = await api.get(`/properties/owner/${ownerId}`)
       return res.data.data
     } catch (error) {
+      if (error.response?.status === 404) {
+        return []
+      }
       return rejectWithValue(error.response?.data?.message || "Failed to fetch properties")
     }
   }
@@ -32,6 +35,9 @@ export const getProperty = createAsyncThunk(
       const res = await api.get(`/properties/${propertyId}`)
       return res.data.data
     } catch (error) {
+      if (error.response?.status === 404) {
+        return null
+      }
       return rejectWithValue(error.response?.data?.message || "Failed to fetch property")
     }
   }

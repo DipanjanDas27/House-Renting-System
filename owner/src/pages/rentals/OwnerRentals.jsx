@@ -2,23 +2,23 @@ import { useEffect, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 
-import { ownerGetPayments } from "@/services/ownerPaymentThunks"
+import { ownerGetRentals } from "@/services/ownerRentalThunks.js"
 
-import PaymentCard from "@/components/custom/PaymentCard"
+import RentalCard from "@/components/custom/RentalCard"
 
-const Payments = () => {
+const OwnerRentals = () => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const { payments, loading } = useSelector((state) => state.payment)
+  const { rentals, loading, error } = useSelector((state) => state.rental)
 
   useEffect(() => {
-    dispatch(ownerGetPayments())
+    dispatch(ownerGetRentals())
   }, [dispatch])
 
   const handleView = useCallback(
-    (id) => navigate(`/payments/${id}`),
+    (id) => navigate(`/owner/rentals/${id}`),
     [navigate]
   )
 
@@ -30,15 +30,21 @@ const Payments = () => {
     <div className="max-w-4xl mx-auto p-4 space-y-6">
 
       <h1 className="text-2xl font-semibold">
-        Payments
+        Rentals
       </h1>
+
+      {error && (
+        <p className="text-red-500 text-sm">
+          {error}
+        </p>
+      )}
 
       <div className="grid gap-4">
 
-        {payments?.map((payment) => (
-          <PaymentCard
-            key={payment.id}
-            payment={payment}
+        {rentals?.map((rental) => (
+          <RentalCard
+            key={rental.id}
+            rental={rental}
             onView={handleView}
           />
         ))}
@@ -49,4 +55,4 @@ const Payments = () => {
   )
 }
 
-export default Payments
+export default OwnerRentals

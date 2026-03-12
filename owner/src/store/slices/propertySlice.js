@@ -4,7 +4,8 @@ import {
   ownerGetProperties,
   ownerUpdateProperty,
   ownerUpdatePropertyImage,
-  ownerDeleteProperty
+  ownerDeleteProperty,
+  getProperty
 } from "@/services/ownerPropertyThunks.js"
 
 const initialState = {

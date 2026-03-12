@@ -1,75 +1,121 @@
-import { useEffect, useCallback } from "react"
+import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useParams, useNavigate } from "react-router-dom"
 
-import { getRentalById } from "@/services/tenantRentalThunks.js"
-import { createPayment } from "@/services/tenantPaymentThunks.js"
+import {
+  ownerGetRentalById,
+  ownerTerminateRental,
+  ownerDeleteRental
+} from "@/services/ownerRentalThunks.js"
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 const RentalDetails = () => {
 
-  const { rentalId } = useParams()
-
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { rentalId } = useParams()
 
-  const { rental } = useSelector(
-    (state) => state.rental
-  )
+  const { rental, loading, error } = useSelector((state) => state.rental)
 
   useEffect(() => {
-    dispatch(getRentalById(rentalId))
+    dispatch(ownerGetRentalById(rentalId))
   }, [dispatch, rentalId])
 
-  const handlePayment = useCallback(() => {
+  const handleTerminate = async () => {
+    await dispatch(ownerTerminateRental(rentalId))
+    navigate("/owner/rentals")
+  }
 
-    dispatch(
-      createPayment({
-        agreement_id: rental.id,
-        owner_id: rental.owner_id,
-        amount: rental.monthly_rent,
-        idempotency_key: crypto.randomUUID()
-      })
-    )
+  const handleDelete = async () => {
+    await dispatch(ownerDeleteRental(rentalId))
+    navigate("/owner/rentals")
+  }
 
-  }, [dispatch, rental])
-
-  const handleRenew = useCallback(() => {
-    navigate(`/rentals/create/${rental.property_id}?renew=${rental.id}`)
-  }, [navigate, rental])
-
-  if (!rental) return <div>Loading...</div>
+  if (loading || !rental) {
+    return <div className="p-6">Loading...</div>
+  }
 
   return (
+    <div className="max-w-xl mx-auto p-4">
 
-    <div className="space-y-4">
+      <Card>
 
-      <h1 className="text-2xl font-bold">
-        Rental Details
-      </h1>
+        <CardHeader>
+          <CardTitle>
+            Rental Details
+          </CardTitle>
+        </CardHeader>
 
-      <p>Status: {rental.status}</p>
+        <CardContent className="space-y-3 text-sm">
 
-      <p>Monthly Rent: ₹{rental.monthly_rent}</p>
+          {error && (
+            <p className="text-red-500">
+              {error}
+            </p>
+          )}
 
-      <Button onClick={handlePayment}>
-        Pay Monthly Rent
-      </Button>
+          <p>
+            Tenant: {rental.tenant_name}
+          </p>
 
-      {rental.status === "terminated" && (
+          <p>
+            Monthly Rent: ₹{rental.monthly_rent}
+          </p>
 
-        <Button
-          variant="outline"
-          onClick={handleRenew}
-        >
-          Renew Rental
-        </Button>
+          <p>
+            Status: {rental.status}
+          </p>
 
-      )}
+          <p>
+            Start Date: {rental.start_date}
+          </p>
+
+          <p>
+            End Date: {rental.end_date}
+          </p>
+
+          <div className="flex gap-3 pt-4">
+
+            <Button
+              variant="destructive"
+              onClick={handleTerminate}
+            >
+              Terminate Rental
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+            >
+              Delete Rental
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={() =>
+                navigate(`/users/${rental.tenant_id}`)
+              }
+            >
+              View Tenant
+            </Button>
+            
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate(-1)}
+          >
+            Go Back
+          </Button>
+
+        </CardContent>
+
+      </Card>
 
     </div>
-
   )
 }
 

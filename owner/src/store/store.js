@@ -15,3 +15,5 @@ export const store = configureStore({
     payment: paymentReducer
   }
 })
+
+export default store

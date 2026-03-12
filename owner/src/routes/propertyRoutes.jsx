@@ -3,7 +3,8 @@ import AuthLayout from "@/components/custom/AuthLayout"
 
 const OwnerProperties = lazy(() => import("@/pages/properties/OwnerProperties"))
 const CreateProperty = lazy(() => import("@/pages/properties/CreateProperty"))
-const EditProperty = lazy(() => import("@/pages/properties/EditProperty"))
+const UpdateProperty = lazy(() => import("@/pages/properties/UpdateProperty"))
+const PropertyDetails = lazy(() => import("@/pages/properties/PropertyDetails"))
 
 const propertyRoutes = [
   {
@@ -34,7 +35,7 @@ const propertyRoutes = [
     path: "/owner/properties/:propertyId/edit",
     element: (
       <AuthLayout authentication={true}>
-        <EditProperty />
+        <UpdateProperty />
       </AuthLayout>
     )
   }

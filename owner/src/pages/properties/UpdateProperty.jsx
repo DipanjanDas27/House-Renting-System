@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { useDispatch, useSelector } from "react-redux"
 import { useParams, useNavigate } from "react-router-dom"
 
-import { getProperty } from "@/services/propertyThunks.js"
+import { getProperty } from "@/services/ownerPropertyThunks"
 import {
   ownerUpdateProperty,
   ownerUpdatePropertyImage

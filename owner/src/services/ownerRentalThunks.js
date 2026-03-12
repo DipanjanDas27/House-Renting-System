@@ -1,5 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit"
-import api from "../../api/axios"
+import api from "./api"
 
 export const ownerGetRentals = createAsyncThunk(
   "ownerRental/getOwnerRentals",
@@ -8,6 +8,9 @@ export const ownerGetRentals = createAsyncThunk(
       const res = await api.get("/rentals/owner/me")
       return res.data.data
     } catch (error) {
+      if (error.response?.status === 404) {
+        return []
+      }
       return rejectWithValue(error.response?.data?.message || "Failed to fetch rentals")
     }
   }
@@ -20,6 +23,9 @@ export const ownerGetRentalById = createAsyncThunk(
       const res = await api.get(`/rentals/${rentalId}`)
       return res.data.data
     } catch (error) {
+      if (error.response?.status === 404) {
+        return null
+      }
       return rejectWithValue(error.response?.data?.message || "Rental not found")
     }
   }
