@@ -1,13 +1,14 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
 
 import { getTenantPayments } from "@/services/tenantPaymentThunks.js"
-
-import { Card, CardContent } from "@/components/ui/card"
+import PaymentCard from "@/components/custom/PaymentCard"
 
 const Payments = () => {
 
   const dispatch = useDispatch()
+  const navigate = useNavigate()
 
   const { payments } = useSelector(
     (state) => state.payment
@@ -17,7 +18,15 @@ const Payments = () => {
     dispatch(getTenantPayments())
   }, [dispatch])
 
-  const paymentList = useMemo(() => payments || [], [payments])
+  const paymentList = useMemo(
+    () => payments || [],
+    [payments]
+  )
+
+  const handleView = useCallback(
+    (id) => navigate(`/payments/${id}`),
+    [navigate]
+  )
 
   return (
 
@@ -25,23 +34,16 @@ const Payments = () => {
 
       {paymentList.map((payment) => (
 
-        <Card key={payment.id}>
-
-          <CardContent className="p-4">
-
-            <p>Amount: ₹{payment.amount}</p>
-
-            <p>Status: {payment.payment_status}</p>
-
-            <p>Transaction: {payment.transaction_id}</p>
-
-          </CardContent>
-
-        </Card>
+        <PaymentCard
+          key={payment.id}
+          payment={payment}
+          onView={handleView}
+        />
 
       ))}
 
     </div>
+
   )
 }
 

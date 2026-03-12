@@ -29,6 +29,9 @@ export const getProperty = createAsyncThunk(
       const res = await api.get(`/properties/${propertyId}`)
       return res.data.data
     } catch (error) {
+      if (error.response?.status === 404) {
+        return null
+      }
       return rejectWithValue(error.response?.data?.message || "Failed to fetch property")
     }
   }

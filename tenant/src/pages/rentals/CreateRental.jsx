@@ -16,8 +16,10 @@ const CreateRental = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const isRenew = location.state?.isRenew
-  const rentalId = location.state?.rentalId
+  const params = new URLSearchParams(location.search)
+
+  const rentalId = params.get("renew")
+  const isRenew = Boolean(rentalId)
 
   const {
     register,
@@ -52,11 +54,7 @@ const CreateRental = () => {
       formData.append("notice_period", data.notice_period)
       formData.append("monthly_rent", data.monthly_rent)
       formData.append("paymentMode", "auto")
-
-      formData.append(
-        "idempotency_key",
-        crypto.randomUUID()
-      )
+      formData.append("idempotency_key", crypto.randomUUID())
 
       if (data.agreement) {
         formData.append("agreement", data.agreement[0])

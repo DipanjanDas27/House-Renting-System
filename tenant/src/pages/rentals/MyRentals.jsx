@@ -1,11 +1,9 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 
 import { getTenantRentals } from "@/services/tenantRentalThunks.js"
-
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import RentalCard from "@/components/custom/RentalCard"
 
 const MyRentals = () => {
 
@@ -20,7 +18,15 @@ const MyRentals = () => {
     dispatch(getTenantRentals())
   }, [dispatch])
 
-  const rentalList = useMemo(() => rentals || [], [rentals])
+  const rentalList = useMemo(
+    () => rentals || [],
+    [rentals]
+  )
+
+  const handleView = useCallback(
+    (id) => navigate(`/rentals/${id}`),
+    [navigate]
+  )
 
   return (
 
@@ -28,33 +34,16 @@ const MyRentals = () => {
 
       {rentalList.map((rental) => (
 
-        <Card key={rental.id}>
-
-          <CardContent className="p-4 space-y-3">
-
-            <h3 className="font-semibold">
-              Rental ID: {rental.id}
-            </h3>
-
-            <p>Status: {rental.status}</p>
-
-            <p>Monthly Rent: ₹{rental.monthly_rent}</p>
-
-            <Button
-              onClick={() =>
-                navigate(`/rentals/${rental.id}`)
-              }
-            >
-              View Details
-            </Button>
-
-          </CardContent>
-
-        </Card>
+        <RentalCard
+          key={rental.id}
+          rental={rental}
+          onView={handleView}
+        />
 
       ))}
 
     </div>
+
   )
 }
 

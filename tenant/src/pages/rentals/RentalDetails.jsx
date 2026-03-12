@@ -56,6 +56,14 @@ const RentalDetails = () => {
       <Button onClick={handlePayment}>
         Pay Monthly Rent
       </Button>
+      <Button
+        variant="secondary"
+        onClick={() =>
+          navigate(`/users/${rental.owner_id}`)
+        }
+      >
+        View Owner
+      </Button>
 
       {rental.status === "terminated" && (
 
