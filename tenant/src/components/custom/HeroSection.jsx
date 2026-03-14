@@ -75,22 +75,7 @@ export default function HeroSection() {
             ))}
           </p>
 
-          <motion.button
-            className="
-              h-14.5 px-10
-              bg-brown-dark text-white
-              font-semibold text-lg rounded-btn
-              hover:bg-[#1a0f09]
-              transition-colors duration-150
-            "
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.9, duration: 0.45, ease: [0.22, 0.68, 0, 1.2] }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            Sign up
-          </motion.button>
+          
         </div>
 
         <motion.div

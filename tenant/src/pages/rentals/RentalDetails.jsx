@@ -1,83 +1,185 @@
 import { useEffect, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useParams, useNavigate } from "react-router-dom"
+import { motion } from "motion/react"
+import { Home, IndianRupee, User, CheckCircle2, Clock, XCircle, ArrowLeft, CreditCard, RefreshCw } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { getRentalById } from "@/services/tenantRentalThunks.js"
 import { createPayment } from "@/services/tenantPaymentThunks.js"
-
 import { Button } from "@/components/ui/button"
 
+const STATUS_CONFIG = {
+  active: { icon: <CheckCircle2 size={14} />, classes: "bg-green-50 text-green-700 border border-green-200" },
+  pending: { icon: <Clock size={14} />, classes: "bg-amber-50 text-amber-700 border border-amber-200" },
+  expired: { icon: <XCircle size={14} />, classes: "bg-red-50 text-red-700 border border-red-200" },
+  terminated: { icon: <XCircle size={14} />, classes: "bg-red-50 text-red-700 border border-red-200" },
+}
+
+const getStatus = (status) =>
+  STATUS_CONFIG[status?.toLowerCase()] ?? {
+    icon: <Clock size={14} />,
+    classes: "bg-beige-card text-brown-muted border border-beige-card",
+  }
+
+const DetailRow = ({ label, value, icon }) => (
+  <div className="flex items-center justify-between gap-4 py-3.5 border-b border-beige-card/60 last:border-0">
+    <div className="flex items-center gap-2 text-sm font-semibold text-brown-muted shrink-0">
+      {icon}
+      {label}
+    </div>
+    <span className="text-sm font-bold text-brown-dark text-right">{value}</span>
+  </div>
+)
+
 const RentalDetails = () => {
-
   const { rentalId } = useParams()
-
   const dispatch = useDispatch()
   const navigate = useNavigate()
-
-  const { rental } = useSelector(
-    (state) => state.rental
-  )
+  const { rental } = useSelector((state) => state.rental)
 
   useEffect(() => {
     dispatch(getRentalById(rentalId))
   }, [dispatch, rentalId])
 
   const handlePayment = useCallback(() => {
-
-    dispatch(
-      createPayment({
-        agreement_id: rental.id,
-        owner_id: rental.owner_id,
-        amount: rental.monthly_rent,
-        idempotency_key: crypto.randomUUID()
-      })
-    )
-
+    dispatch(createPayment({
+      agreement_id: rental.id,
+      owner_id: rental.owner_id,
+      amount: rental.monthly_rent,
+      idempotency_key: crypto.randomUUID(),
+    }))
   }, [dispatch, rental])
 
   const handleRenew = useCallback(() => {
     navigate(`/rentals/create/${rental.property_id}?renew=${rental.id}`)
   }, [navigate, rental])
 
-  if (!rental) return <div>Loading...</div>
+  if (!rental) return (
+    <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
+      <div className="max-w-lg mx-auto">
+        <Skeleton className="h-4 w-32 rounded-btn bg-beige-card mb-6" />
+        <div className="bg-white rounded-card shadow-card-md overflow-hidden">
+          <div className="bg-beige-card px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-11 rounded-btn bg-white/60" />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20 rounded-btn bg-white/60" />
+                <Skeleton className="h-5 w-32 rounded-btn bg-white/60" />
+              </div>
+            </div>
+            <Skeleton className="h-6 w-16 rounded-full bg-white/60" />
+          </div>
+          <div className="px-6 py-2 space-y-1">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex justify-between py-3.5 border-b border-beige-card/60">
+                <Skeleton className="h-4 w-28 rounded-btn bg-beige-card" />
+                <Skeleton className="h-4 w-32 rounded-btn bg-beige-card" />
+              </div>
+            ))}
+          </div>
+          <div className="px-6 pb-6 pt-3 space-y-3">
+            <Skeleton className="h-12 w-full rounded-btn bg-beige-card" />
+            <Skeleton className="h-12 w-full rounded-btn bg-beige-card" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+  const { icon, classes } = getStatus(rental.status)
 
   return (
-
-    <div className="space-y-4">
-
-      <h1 className="text-2xl font-bold">
-        Rental Details
-      </h1>
-
-      <p>Status: {rental.status}</p>
-
-      <p>Monthly Rent: ₹{rental.monthly_rent}</p>
-
-      <Button onClick={handlePayment}>
-        Pay Monthly Rent
-      </Button>
-      <Button
-        variant="secondary"
-        onClick={() =>
-          navigate(`/users/${rental.owner_id}`)
-        }
+    <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
+      <motion.div
+        className="max-w-lg mx-auto"
+        initial={{ opacity: 0, y: 32 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: [0.22, 0.68, 0, 1.1] }}
       >
-        View Owner
-      </Button>
-
-      {rental.status === "terminated" && (
-
-        <Button
-          variant="outline"
-          onClick={handleRenew}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm font-bold text-brown-muted hover:text-brown-dark transition-colors duration-150 mb-6"
         >
-          Renew Rental
-        </Button>
+          <ArrowLeft size={16} />
+          Back to Rentals
+        </button>
 
-      )}
+        <div className="bg-white rounded-card shadow-card-md overflow-hidden">
 
+          <div className="bg-beige-card px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-11 rounded-btn bg-white flex items-center justify-center">
+                <Home size={20} className="text-brown-dark" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-brown-muted leading-none mb-1">Agreement</p>
+                <p className="text-base font-extrabold text-brown-dark leading-none">Rental Details</p>
+              </div>
+            </div>
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold capitalize ${classes}`}>
+              {icon}
+              {rental.status}
+            </div>
+          </div>
+
+          <div className="px-6 py-2">
+            <DetailRow
+              label="Monthly Rent"
+              value={`₹${Number(rental.monthly_rent).toLocaleString("en-IN")}/mo`}
+              icon={<IndianRupee size={14} />}
+            />
+            <DetailRow
+              label="Status"
+              value={rental.status}
+              icon={<CheckCircle2 size={14} />}
+            />
+          </div>
+
+          <div className="px-6 pb-6 pt-3 flex flex-col gap-3">
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+              <Button
+                onClick={handlePayment}
+                className="w-full h-12 bg-brown-dark hover:bg-[#1a0f09] text-white font-semibold text-sm rounded-btn transition-colors duration-150 flex items-center justify-center gap-2"
+              >
+                <CreditCard size={16} />
+                Pay Monthly Rent
+              </Button>
+            </motion.div>
+
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/users/${rental.owner_id}`)}
+                className="w-full h-12 border-beige-card text-brown-dark font-semibold text-sm rounded-btn hover:bg-beige-input transition-colors duration-150 flex items-center justify-center gap-2"
+              >
+                <User size={16} />
+                View Owner
+              </Button>
+            </motion.div>
+
+            {rental.status === "terminated" && (
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Button
+                  variant="outline"
+                  onClick={handleRenew}
+                  className="w-full h-12 border-beige-card text-brown-dark font-semibold text-sm rounded-btn hover:bg-beige-input transition-colors duration-150 flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={16} />
+                  Renew Rental
+                </Button>
+              </motion.div>
+            )}
+          </div>
+
+        </div>
+      </motion.div>
     </div>
-
   )
 }
 

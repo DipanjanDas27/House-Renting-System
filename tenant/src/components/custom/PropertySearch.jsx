@@ -47,7 +47,7 @@ const PropertySearch = () => {
         const cities = [...new Set(res.map((p) => p.city).filter(Boolean))]
         setSuggestions(cities.slice(0, 5))
         setShowSuggestions(true)
-      } catch {}
+      } catch { }
     }, 400)
     return () => clearTimeout(timer)
   }, [search, dispatch])
@@ -58,21 +58,19 @@ const PropertySearch = () => {
   }
 
   return (
+
     <motion.div
-      className="flex justify-center px-page relative z-10 -mt-10"
-      initial={{ opacity: 0, y: 50, scale: 0.97 }}
+      className="w-full"
+      initial={{ opacity: 0, y: 20, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.75, duration: 0.6, ease: [0.22, 0.68, 0, 1.1] }}
     >
-      <div
-        className="
-        bg-beige-card rounded-card shadow-card-md
-        flex items-center
-        px-8 h-25 gap-3
-        w-full max-w-267.5
-        font-montserrat
-      "
-      >
+      <div className="
+      bg-beige-card rounded-card shadow-card-md
+      flex items-center
+      px-8 h-25 gap-3
+      w-full
+    ">
         <div ref={searchRef} className="flex-1 relative">
           <div
             className="

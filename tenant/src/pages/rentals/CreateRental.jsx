@@ -1,161 +1,193 @@
 import { useForm } from "react-hook-form"
 import { useDispatch } from "react-redux"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
+import { motion } from "motion/react"
+import { CalendarDays, IndianRupee, FileText, Clock, ArrowLeft, FilePlus, RefreshCw } from "lucide-react"
 
 import { createRental, renewRental } from "@/services/tenantRentalThunks.js"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import logo from "/logo.svg"
 
 const CreateRental = () => {
-
   const { propertyId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
   const params = new URLSearchParams(location.search)
-
   const rentalId = params.get("renew")
   const isRenew = Boolean(rentalId)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { isValid }
-  } = useForm({ mode: "onChange" })
+  const { register, handleSubmit, formState: { isValid } } = useForm({ mode: "onChange" })
 
   const onSubmit = async (data) => {
-
     if (isRenew) {
-
       const renewData = {
         start_date: data.start_date,
         end_date: data.end_date,
         idempotency_key: crypto.randomUUID(),
-        paymentMode: "auto"
+        paymentMode: "auto",
       }
-
-      await dispatch(
-        renewRental({
-          rentalId,
-          data: renewData
-        })
-      )
-
+      await dispatch(renewRental({ rentalId, data: renewData }))
     } else {
-
       const formData = new FormData()
-
       formData.append("start_date", data.start_date)
       formData.append("end_date", data.end_date)
       formData.append("notice_period", data.notice_period)
       formData.append("monthly_rent", data.monthly_rent)
       formData.append("paymentMode", "auto")
       formData.append("idempotency_key", crypto.randomUUID())
-
-      if (data.agreement) {
-        formData.append("agreement", data.agreement[0])
-      }
-
-      await dispatch(
-        createRental({
-          propertyId,
-          formData
-        })
-      )
+      if (data.agreement) formData.append("agreement", data.agreement[0])
+      await dispatch(createRental({ propertyId, formData }))
     }
-
     navigate("/rentals")
   }
 
+  const fieldAnim = (delay) => ({
+    initial: { opacity: 0, x: -20 },
+    animate: { opacity: 1, x: 0 },
+    transition: { delay, duration: 0.45 },
+  })
+
   return (
-    <div className="max-w-xl mx-auto p-4">
+    <div className="min-h-screen bg-cream-bg flex items-center justify-center px-4 py-12 font-montserrat">
+      <motion.div
+        className="w-full max-w-lg"
+        initial={{ opacity: 0, y: 40, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.22, 0.68, 0, 1.1] }}
+      >
+        <div className="bg-white rounded-card shadow-card-md overflow-hidden">
 
-      <Card>
-
-        <CardHeader>
-          <CardTitle>
-            {isRenew ? "Renew Rental" : "Create Rental"}
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent>
-
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
-
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                {...register("start_date", { required: true })}
-              />
+          <div className="bg-beige-card px-8 py-6 flex items-center gap-4">
+            <div className="size-12 rounded-btn bg-white flex items-center justify-center shadow-card shrink-0">
+              {isRenew ? <RefreshCw size={20} className="text-brown-dark" /> : <FilePlus size={20} className="text-brown-dark" />}
             </div>
-
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                {...register("end_date", { required: true })}
+            <div>
+              <img
+                src={logo}
+                alt="Dwellio"
+                className="h-6 w-auto mb-1.5 cursor-pointer"
+                onClick={() => navigate("/")}
               />
+              <h1 className="text-xl font-extrabold text-brown-dark leading-none">
+                {isRenew ? "Renew Rental" : "Create Rental"}
+              </h1>
+              <p className="text-xs font-semibold text-brown-muted mt-1">
+                {isRenew ? "Extend your existing rental agreement" : "Set up a new rental agreement"}
+              </p>
             </div>
+          </div>
 
-            {!isRenew && (
-              <>
-                <div className="space-y-2">
-                  <Label>Notice Period</Label>
-                  <Input
-                    type="number"
-                    {...register("notice_period")}
-                  />
-                </div>
+          <div className="px-8 py-7">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
-                <div className="space-y-2">
-                  <Label>Monthly Rent</Label>
-                  <Input
-                    type="number"
-                    {...register("monthly_rent", { required: true })}
-                  />
-                </div>
+              <motion.div className="space-y-1.5" {...fieldAnim(0.15)}>
+                <Label className="text-sm font-bold text-brown-dark flex items-center gap-1.5">
+                  <CalendarDays size={14} className="text-brown-muted" />
+                  Start Date
+                </Label>
+                <Input
+                  type="date"
+                  className="h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold focus-visible:ring-brown-dark/30 focus-visible:border-brown-dark"
+                  {...register("start_date", { required: true })}
+                />
+              </motion.div>
 
-                <div className="space-y-2">
-                  <Label>Agreement Document</Label>
-                  <Input
-                    type="file"
-                    {...register("agreement")}
-                  />
-                </div>
-              </>
-            )}
+              <motion.div className="space-y-1.5" {...fieldAnim(0.22)}>
+                <Label className="text-sm font-bold text-brown-dark flex items-center gap-1.5">
+                  <CalendarDays size={14} className="text-brown-muted" />
+                  End Date
+                </Label>
+                <Input
+                  type="date"
+                  className="h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold focus-visible:ring-brown-dark/30 focus-visible:border-brown-dark"
+                  {...register("end_date", { required: true })}
+                />
+              </motion.div>
 
-            <Button
-              type="submit"
-              disabled={!isValid}
-              className="w-full"
-            >
-              {isRenew ? "Renew Rental" : "Create Rental"}
-            </Button>
+              {!isRenew && (
+                <>
+                  <motion.div className="space-y-1.5" {...fieldAnim(0.29)}>
+                    <Label className="text-sm font-bold text-brown-dark flex items-center gap-1.5">
+                      <Clock size={14} className="text-brown-muted" />
+                      Notice Period (days)
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g. 30"
+                      className="h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold placeholder:text-brown-muted/60 focus-visible:ring-brown-dark/30 focus-visible:border-brown-dark"
+                      {...register("notice_period")}
+                    />
+                  </motion.div>
 
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => navigate(-1)}
-            >
-              Go Back
-            </Button>
+                  <motion.div className="space-y-1.5" {...fieldAnim(0.36)}>
+                    <Label className="text-sm font-bold text-brown-dark flex items-center gap-1.5">
+                      <IndianRupee size={14} className="text-brown-muted" />
+                      Monthly Rent
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-brown-muted">₹</span>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 25000"
+                        className="pl-8 h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold placeholder:text-brown-muted/60 focus-visible:ring-brown-dark/30 focus-visible:border-brown-dark"
+                        {...register("monthly_rent", { required: true })}
+                      />
+                    </div>
+                  </motion.div>
 
-          </form>
+                  <motion.div className="space-y-1.5" {...fieldAnim(0.43)}>
+                    <Label className="text-sm font-bold text-brown-dark flex items-center gap-1.5">
+                      <FileText size={14} className="text-brown-muted" />
+                      Agreement Document
+                    </Label>
+                    <label className="flex items-center gap-3 h-12 px-3.5 bg-beige-input border border-beige-card rounded-btn cursor-pointer hover:border-brown-muted transition-colors duration-150">
+                      <FileText size={15} className="text-brown-muted shrink-0" />
+                      <span className="text-sm font-semibold text-brown-muted">Upload agreement PDF...</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        {...register("agreement")}
+                      />
+                    </label>
+                  </motion.div>
+                </>
+              )}
 
-        </CardContent>
+              <motion.div
+                className="space-y-3 pt-2"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: isRenew ? 0.3 : 0.5, duration: 0.45 }}
+              >
+                <Button
+                  type="submit"
+                  disabled={!isValid}
+                  className="w-full h-12 bg-brown-dark hover:bg-[#1a0f09] text-white font-semibold text-base rounded-btn transition-colors duration-150 flex items-center justify-center gap-2"
+                >
+                  {isRenew ? <RefreshCw size={16} /> : <FilePlus size={16} />}
+                  {isRenew ? "Renew Rental" : "Create Rental"}
+                </Button>
 
-      </Card>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-12 border-beige-card text-brown-dark font-semibold text-base rounded-btn hover:bg-beige-input transition-colors duration-150 flex items-center justify-center gap-2"
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeft size={15} />
+                  Go Back
+                </Button>
+              </motion.div>
 
+            </form>
+          </div>
+
+        </div>
+      </motion.div>
     </div>
   )
 }

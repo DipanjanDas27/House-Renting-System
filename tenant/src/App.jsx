@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom"
 import Navbar from "./components/custom/Navbar"
 import Footer from "./components/custom/Footer"
 import { getCurrentUser } from "./services/userThunks"
+import AppSkeleton from "./components/custom/AppSkeleton"
 
 const App = () => {
   const dispatch = useDispatch()
@@ -15,16 +16,14 @@ const App = () => {
 
   if (!isInitialized) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
+      <AppSkeleton/>
     )
   }
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-gray-50 p-4">
+      <main className="min-h-screen bg-cream-bg pt-[80px]">
         <Outlet />
       </main>
       <Footer />

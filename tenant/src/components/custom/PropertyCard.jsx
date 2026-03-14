@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "motion/react"
 import { MapPin, BedDouble, Maximize2 } from "lucide-react"
 
-const PropertyCard = ({ property }) => {
+const PropertyCard = ({ property , onView }) => {
   const navigate = useNavigate()
 
   return (
