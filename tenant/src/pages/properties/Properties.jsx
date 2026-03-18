@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useCallback } from "react"
+import { useEffect, useMemo, useCallback, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { useNavigate } from "react-router-dom"
 import { motion } from "motion/react"
 import { Building2, SearchX } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -9,20 +8,38 @@ import { getFilteredProperties } from "@/services/tenantPropertyThunks.js"
 import PropertySearch from "@/components/custom/PropertySearch"
 import PropertyCard from "@/components/custom/PropertyCard"
 
+const DEFAULT_FILTER = { minPrice: 0, maxPrice: 1000000 }
+
 const Properties = () => {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const { properties, loading } = useSelector((state) => state.property)
 
+  const [search,      setSearch]      = useState("")
+  const [minPrice,    setMinPrice]    = useState("")
+  const [maxPrice,    setMaxPrice]    = useState("")
+  const [hasSearched, setHasSearched] = useState(false)
+
   useEffect(() => {
-    dispatch(getFilteredProperties({ minPrice: 0, maxPrice: 100000 }))
+    dispatch(getFilteredProperties(DEFAULT_FILTER))
+  }, [dispatch])
+
+  const handleSearch = useCallback(() => {
+    if (!search && !minPrice && !maxPrice) return
+    setHasSearched(true)
+    dispatch(getFilteredProperties({ search, minPrice, maxPrice }))
+  }, [dispatch, search, minPrice, maxPrice])
+
+  const handleReset = useCallback(() => {
+    setSearch("")
+    setMinPrice("")
+    setMaxPrice("")
+    setHasSearched(false)
+    dispatch(getFilteredProperties(DEFAULT_FILTER))
   }, [dispatch])
 
   const propertyList = useMemo(() => properties || [], [properties])
 
-  const handleView = useCallback((id) => navigate(`/properties/${id}`), [navigate])
-
-  if (!propertyList.length && loading) return (
+  if (loading) return (
     <div className="min-h-screen bg-cream-bg font-montserrat">
       <div className="bg-beige-card/50 border-b border-beige-card px-page py-8">
         <Skeleton className="h-7 w-40 rounded-btn bg-beige-card mb-2" />
@@ -36,7 +53,6 @@ const Properties = () => {
             <div className="p-5 space-y-3">
               <Skeleton className="h-4 w-3/4 rounded-btn bg-beige-card" />
               <Skeleton className="h-5 w-2/3 rounded-btn bg-beige-card" />
-              <Skeleton className="h-6 w-1/3 rounded-btn bg-beige-card" />
               <Skeleton className="h-10 w-full rounded-btn bg-beige-card" />
             </div>
           </div>
@@ -44,10 +60,11 @@ const Properties = () => {
       </div>
     </div>
   )
+
   return (
     <div className="min-h-screen bg-cream-bg font-montserrat">
 
-      <div className="bg-beige-card/50 border-b border-beige-card px-page py-10">
+      <div className="bg-beige-card/50 border-b border-beige-card px-page py-8">
         <motion.div
           className="flex items-center gap-3 mb-6"
           initial={{ opacity: 0, y: -16 }}
@@ -60,18 +77,25 @@ const Properties = () => {
           <div>
             <h1 className="text-2xl font-extrabold text-brown-dark leading-none">Properties</h1>
             <p className="text-sm font-semibold text-brown-muted mt-1">
-              {propertyList.length > 0 ? `${propertyList.length} properties found` : "Browse available rentals"}
+              {propertyList.length > 0
+                ? `${propertyList.length} properties found`
+                : hasSearched
+                  ? "No results for your search"
+                  : "Browse available rentals"}
             </p>
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-        >
-          <PropertySearch />
-        </motion.div>
+        <PropertySearch
+          search={search}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          onSearchChange={setSearch}
+          onMinPriceChange={setMinPrice}
+          onMaxPriceChange={setMaxPrice}
+          onSearch={handleSearch}
+          onReset={handleReset}
+        />
       </div>
 
       <div className="px-page py-10">
@@ -85,8 +109,12 @@ const Properties = () => {
             <div className="size-16 rounded-card bg-beige-card flex items-center justify-center mb-4">
               <SearchX size={28} className="text-brown-muted" />
             </div>
-            <p className="text-base font-bold text-brown-dark mb-1">No properties found</p>
-            <p className="text-sm font-semibold text-brown-muted">Try adjusting your search filters</p>
+            <p className="text-base font-bold text-brown-dark mb-1">
+              {hasSearched ? "No properties found for your search" : "No properties available"}
+            </p>
+            <p className="text-sm font-semibold text-brown-muted">
+              {hasSearched ? "Try a different location or price range" : "Check back later"}
+            </p>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
@@ -97,7 +125,7 @@ const Properties = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: i * 0.07, duration: 0.5, ease: [0.22, 0.68, 0, 1.1] }}
               >
-                <PropertyCard property={property} onView={handleView} />
+                <PropertyCard property={property} />
               </motion.div>
             ))}
           </div>

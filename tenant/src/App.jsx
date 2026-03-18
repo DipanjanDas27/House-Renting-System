@@ -15,7 +15,7 @@ const App = () => {
     if (!isInitialized) {
       dispatch(getCurrentUser())
     }
-  }, [dispatch, isInitialized])
+  }, [dispatch])
 
 
   if (!isInitialized) {
