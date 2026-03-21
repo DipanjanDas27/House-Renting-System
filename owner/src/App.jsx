@@ -3,7 +3,9 @@ import { useDispatch, useSelector } from "react-redux"
 import { Outlet } from "react-router-dom"
 import Navbar from "./components/custom/Navbar"
 import Footer from "./components/custom/Footer"
+import { DashboardSkeleton } from "@/components/custom/skeletons/index.jsx"
 import { getCurrentUser } from "./services/userThunks"
+import ScrollToTop from "./components/custom/ScrollToTop"
 
 const App = () => {
   const dispatch = useDispatch()
@@ -15,16 +17,15 @@ const App = () => {
 
   if (!isInitialized) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
+      <DashboardSkeleton />
     )
   }
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-gray-50 p-4">
+      <ScrollToTop/>
+      <main className="min-h-screen bg-cream-bg pt-18">
         <Outlet />
       </main>
       <Footer />

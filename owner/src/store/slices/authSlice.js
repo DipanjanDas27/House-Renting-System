@@ -29,9 +29,6 @@ const authSlice = createSlice({
     clearAuthState: (state) => {
       state.error = null
       state.success = false
-      state.isAuthenticated = false
-      state.isInitialized = false
-      state.user = null
     }
   },
   extraReducers: (builder) => {

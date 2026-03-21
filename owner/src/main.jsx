@@ -7,17 +7,13 @@ import store from "@/store/store"
 import { router } from "@/routes/router"
 
 import "./index.css"
+import { DashboardSkeleton } from "./components/custom/skeletons"
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
       <Suspense
-        fallback={
-          <div className="flex items-center justify-center h-screen">
-            Loading...
-          </div>
-        }
-      >
+        fallback={<DashboardSkeleton/>} >
         <RouterProvider router={router} />
       </Suspense>
     </Provider>

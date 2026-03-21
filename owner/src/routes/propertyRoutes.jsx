@@ -16,18 +16,18 @@ const propertyRoutes = [
     )
   },
   {
-    path: "/owner/properties/:propertyId",
-    element: (
-      <AuthLayout authentication={true}>
-        <PropertyDetails />
-      </AuthLayout>
-    )
-  },
-  {
     path: "/owner/properties/create",
     element: (
       <AuthLayout authentication={true}>
         <CreateProperty />
+      </AuthLayout>
+    )
+  },
+  {
+    path: "/owner/properties/:propertyId",
+    element: (
+      <AuthLayout authentication={true}>
+        <PropertyDetails />
       </AuthLayout>
     )
   },
