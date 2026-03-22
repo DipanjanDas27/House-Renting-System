@@ -9,7 +9,6 @@ import { getCurrentUser, updateProfile, updateProfileImage, deleteAccount } from
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { ProfileSkeleton } from "@/components/custom/skeletons/index.jsx"
 import ConfirmModal from "@/components/custom/ConfirmModal.jsx"
 
 const FormField = ({ label, icon, error, children }) => (
