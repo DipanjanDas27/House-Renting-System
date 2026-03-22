@@ -12,8 +12,8 @@ import paymentRoutes from "./routes/payment.route.js";
 
 const app = express()
 const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map(o => o.trim())
-    : []
+  ? process.env.CORS_ORIGIN.split(",").map(o => o.trim())
+  : []
 
 app.use(cors({
     origin: (origin, callback) => {
