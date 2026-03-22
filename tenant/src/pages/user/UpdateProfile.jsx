@@ -28,11 +28,11 @@ const UpdateProfile = () => {
   const navigate = useNavigate()
   const { user, loading } = useSelector((state) => state.auth)
 
-  const [file,         setFile]         = useState(null)
-  const [preview,      setPreview]      = useState(null)
-  const [deleting,     setDeleting]     = useState(false)
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [deleting, setDeleting] = useState(false)
   const [imageLoading, setImageLoading] = useState(false)
-  const [modal,        setModal]        = useState(false)
+  const [modal, setModal] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors, isValid } } = useForm({ mode: "onChange" })
 
@@ -67,7 +67,7 @@ const UpdateProfile = () => {
         setImageLoading(false)
       }
       navigate("/profile")
-    } catch {}
+    } catch { }
   }
 
   const handleConfirmDelete = async () => {
@@ -75,12 +75,47 @@ const UpdateProfile = () => {
     try {
       await dispatch(deleteAccount(user.id)).unwrap()
       navigate("/login")
-    } catch {}
+    } catch { }
     setDeleting(false)
     setModal(false)
   }
 
-  if (!user || loading) return <ProfileSkeleton />
+  if (!user || loading) return (
+    <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
+      <div className="max-w-lg mx-auto">
+        <Skeleton className="h-4 w-32 rounded-btn bg-beige-card mb-6" />
+        <div className="bg-white rounded-card shadow-card-md overflow-hidden">
+          <div className="bg-beige-card px-6 py-5 flex items-center gap-3">
+            <Skeleton className="size-11 rounded-btn bg-white/60" />
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-16 rounded-btn bg-white/60" />
+              <Skeleton className="h-5 w-32 rounded-btn bg-white/60" />
+            </div>
+          </div>
+          <div className="px-6 py-6 space-y-6">
+            <div className="flex flex-col items-center gap-3">
+              <Skeleton className="size-24 rounded-full bg-beige-card" />
+              <Skeleton className="h-3 w-32 rounded-btn bg-beige-card" />
+            </div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="space-y-1.5">
+                  <Skeleton className="h-4 w-20 rounded-btn bg-beige-card" />
+                  <Skeleton className="h-12 w-full rounded-btn bg-beige-card" />
+                </div>
+              ))}
+              <Skeleton className="h-12 w-full rounded-btn bg-beige-card" />
+            </div>
+            <div className="pt-2 border-t border-beige-card space-y-3">
+              <Skeleton className="h-3 w-24 rounded-btn bg-beige-card" />
+              <Skeleton className="h-12 w-full rounded-btn bg-beige-card" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
 
   return (
     <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
