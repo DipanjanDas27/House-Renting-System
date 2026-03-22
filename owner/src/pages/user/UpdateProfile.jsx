@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { ProfileSkeleton } from "@/components/custom/skeletons/index.jsx"
+import ConfirmModal from "@/components/custom/ConfirmModal.jsx"
 
 const FormField = ({ label, icon, error, children }) => (
   <div className="space-y-1.5">
@@ -27,10 +28,11 @@ const UpdateProfile = () => {
   const navigate = useNavigate()
   const { user, loading } = useSelector((state) => state.auth)
 
-  const [file,          setFile]          = useState(null)
-  const [preview,       setPreview]       = useState(null)
-  const [deleting,      setDeleting]      = useState(false)
-  const [imageLoading,  setImageLoading]  = useState(false)
+  const [file,         setFile]         = useState(null)
+  const [preview,      setPreview]      = useState(null)
+  const [deleting,     setDeleting]     = useState(false)
+  const [imageLoading, setImageLoading] = useState(false)
+  const [modal,        setModal]        = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors, isValid } } = useForm({ mode: "onChange" })
 
@@ -68,19 +70,31 @@ const UpdateProfile = () => {
     } catch {}
   }
 
-  const handleDeleteAccount = async () => {
+  const handleConfirmDelete = async () => {
     setDeleting(true)
     try {
       await dispatch(deleteAccount(user.id)).unwrap()
       navigate("/login")
     } catch {}
     setDeleting(false)
+    setModal(false)
   }
 
   if (!user || loading) return <ProfileSkeleton />
 
   return (
     <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
+
+      <ConfirmModal
+        isOpen={modal}
+        onClose={() => setModal(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+        title="Delete Account"
+        description="This will permanently delete your owner account including all properties, rentals, payments and profile data. This action cannot be undone."
+        confirmLabel="Delete Account"
+      />
+
       <motion.div
         className="max-w-lg mx-auto"
         initial={{ opacity: 0, y: 32 }}
@@ -97,7 +111,6 @@ const UpdateProfile = () => {
 
         <div className="bg-white rounded-card shadow-card-md overflow-hidden">
 
-          {/* ── Header ──────────────────────────────────────── */}
           <div className="bg-beige-card px-6 py-5 flex items-center gap-3">
             <div className="size-11 rounded-btn bg-white flex items-center justify-center">
               <User size={20} className="text-brown-dark" />
@@ -110,7 +123,6 @@ const UpdateProfile = () => {
 
           <div className="px-6 py-6 space-y-6">
 
-            {/* ── Avatar ────────────────────────────────────── */}
             <div className="flex flex-col items-center gap-3">
               <div className="relative">
                 {preview ? (
@@ -121,19 +133,18 @@ const UpdateProfile = () => {
                   </div>
                 )}
                 <label
-                  htmlFor="avatar-upload"
+                  htmlFor="avatar-upload-owner"
                   className="absolute -bottom-1 -right-1 size-8 rounded-full bg-brown-dark flex items-center justify-center cursor-pointer hover:bg-[#1a0f09] transition-colors shadow-card"
                 >
                   <ImagePlus size={14} className="text-white" />
                 </label>
-                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <input id="avatar-upload-owner" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
               <p className="text-xs font-semibold text-brown-muted">
                 {file ? file.name : "Click icon to change photo"}
               </p>
             </div>
 
-            {/* ── Form ──────────────────────────────────────── */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
               <FormField label="Full Name" icon={<User size={14} className="text-brown-muted" />} error={errors.full_name?.message}>
@@ -180,27 +191,16 @@ const UpdateProfile = () => {
 
             </form>
 
-            {/* ── Danger zone ───────────────────────────────── */}
             <div className="pt-2 border-t border-beige-card">
               <p className="text-xs font-bold text-brown-muted uppercase tracking-widest mb-3">Danger Zone</p>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                 <Button
                   type="button"
-                  onClick={handleDeleteAccount}
-                  disabled={deleting}
+                  onClick={() => setModal(true)}
                   className="w-full h-12 border border-red-200 bg-white text-red-600 hover:bg-red-50 font-semibold text-sm rounded-btn flex items-center justify-center gap-2"
                 >
-                  {deleting ? (
-                    <span className="flex items-center gap-2">
-                      <span className="size-4 rounded-full border-2 border-red-300 border-t-red-600 animate-spin" />
-                      Deleting...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Trash2 size={15} />
-                      Delete Account
-                    </span>
-                  )}
+                  <Trash2 size={15} />
+                  Delete Account
                 </Button>
               </motion.div>
             </div>

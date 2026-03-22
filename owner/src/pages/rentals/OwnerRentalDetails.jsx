@@ -4,8 +4,8 @@ import { useParams, useNavigate } from "react-router-dom"
 import { motion } from "motion/react"
 import {
   Home, IndianRupee, User, CheckCircle2, Clock,
-  XCircle, ArrowLeft, Trash2, AlertTriangle, CalendarDays,
-  FileText, AlertCircle
+  XCircle, ArrowLeft, Trash2, AlertTriangle,
+  CalendarDays, FileText, AlertCircle
 } from "lucide-react"
 
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/services/ownerRentalThunks.js"
 import { Button } from "@/components/ui/button"
 import { RentalDetailsSkeleton } from "@/components/custom/skeletons/index.jsx"
+import ConfirmModal from "@/components/custom/ConfirmModal.jsx"
 
 const STATUS_CONFIG = {
   active:     { icon: <CheckCircle2 size={14} />, classes: "bg-green-50 text-green-700 border border-green-200"  },
@@ -51,24 +52,28 @@ const OwnerRentalDetails = () => {
 
   const { rental, loading, error } = useSelector((state) => state.rental)
 
-  const [terminating, setTerminating] = useState(false)
-  const [deleting,    setDeleting]    = useState(false)
+  const [deleteModal,    setDeleteModal]    = useState(false)
+  const [terminateModal, setTerminateModal] = useState(false)
+  const [terminating,    setTerminating]    = useState(false)
+  const [deleting,       setDeleting]       = useState(false)
 
   useEffect(() => {
     dispatch(ownerGetRentalById(rentalId))
   }, [dispatch, rentalId])
 
-  const handleTerminate = async () => {
+  const handleConfirmTerminate = async () => {
     setTerminating(true)
     await dispatch(ownerTerminateRental(rentalId))
     setTerminating(false)
+    setTerminateModal(false)
     dispatch(ownerGetRentalById(rentalId))
   }
 
-  const handleDelete = async () => {
+  const handleConfirmDelete = async () => {
     setDeleting(true)
     await dispatch(ownerDeleteRental(rentalId))
     setDeleting(false)
+    setDeleteModal(false)
     navigate("/owner/rentals")
   }
 
@@ -78,6 +83,27 @@ const OwnerRentalDetails = () => {
 
   return (
     <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
+
+      <ConfirmModal
+        isOpen={terminateModal}
+        onClose={() => setTerminateModal(false)}
+        onConfirm={handleConfirmTerminate}
+        loading={terminating}
+        title="Schedule Termination"
+        description={`This will schedule termination of the rental after the notice period of ${rental.notice_period ?? 0} days. The tenant will be notified.`}
+        confirmLabel="Schedule"
+        variant="warning"
+      />
+
+      <ConfirmModal
+        isOpen={deleteModal}
+        onClose={() => setDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+        title="Delete Rental"
+        description="This will permanently delete this rental agreement. Only terminated or cancelled rentals can be deleted."
+      />
+
       <motion.div
         className="max-w-lg mx-auto"
         initial={{ opacity: 0, y: 32 }}
@@ -94,7 +120,6 @@ const OwnerRentalDetails = () => {
 
         <div className="bg-white rounded-card shadow-card-md overflow-hidden">
 
-          {/* ── Header ──────────────────────────────────────── */}
           <div className="bg-beige-card px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="size-11 rounded-btn bg-white flex items-center justify-center">
@@ -111,14 +136,12 @@ const OwnerRentalDetails = () => {
             </div>
           </div>
 
-          {/* ── Error ───────────────────────────────────────── */}
           {error && (
             <div className="mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-btn">
               <p className="text-xs font-semibold text-red-600">{error}</p>
             </div>
           )}
 
-          {/* ── Termination notice ──────────────────────────── */}
           {rental.termination_effective_date && rental.status === "active" && (
             <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-btn flex items-center gap-2">
               <AlertTriangle size={15} className="text-amber-600 shrink-0" />
@@ -128,38 +151,14 @@ const OwnerRentalDetails = () => {
             </div>
           )}
 
-          {/* ── Detail rows ─────────────────────────────────── */}
           <div className="px-6 py-2">
-            <DetailRow
-              label="Monthly Rent"
-              value={`₹${Number(rental.monthly_rent).toLocaleString("en-IN")}/mo`}
-              icon={<IndianRupee size={14} />}
-            />
-            <DetailRow
-              label="Status"
-              value={rental.status}
-              icon={<CheckCircle2 size={14} />}
-            />
-            <DetailRow
-              label="Start Date"
-              value={formatDate(rental.start_date)}
-              icon={<CalendarDays size={14} />}
-            />
-            <DetailRow
-              label="End Date"
-              value={formatDate(rental.end_date)}
-              icon={<CalendarDays size={14} />}
-            />
-            <DetailRow
-              label="Notice Period"
-              value={rental.notice_period ? `${rental.notice_period} days` : "—"}
-              icon={<AlertCircle size={14} />}
-            />
-            <DetailRow
-              label="Security Paid"
-              value={rental.security_paid ? "Yes" : "No"}
-              icon={<CheckCircle2 size={14} />}
-            />
+            <DetailRow label="Tenant"        value={rental.tenant_name ?? "—"}                                         icon={<User size={14} />} />
+            <DetailRow label="Monthly Rent"  value={`₹${Number(rental.monthly_rent).toLocaleString("en-IN")}/mo`}     icon={<IndianRupee size={14} />} />
+            <DetailRow label="Status"        value={rental.status}                                                      icon={<CheckCircle2 size={14} />} />
+            <DetailRow label="Start Date"    value={formatDate(rental.start_date)}                                     icon={<CalendarDays size={14} />} />
+            <DetailRow label="End Date"      value={formatDate(rental.end_date)}                                       icon={<CalendarDays size={14} />} />
+            <DetailRow label="Notice Period" value={rental.notice_period ? `${rental.notice_period} days` : "—"}       icon={<AlertCircle size={14} />} />
+            <DetailRow label="Security Paid" value={rental.security_paid ? "Yes" : "No"}                               icon={<CheckCircle2 size={14} />} />
             {rental.agreement_document_url && (
               <div className="flex items-center justify-between gap-4 py-3.5 border-b border-beige-card/60">
                 <div className="flex items-center gap-2 text-sm font-semibold text-brown-muted shrink-0">
@@ -176,14 +175,9 @@ const OwnerRentalDetails = () => {
                 </a>
               </div>
             )}
-            <DetailRow
-              label="Created At"
-              value={formatDate(rental.created_at)}
-              icon={<CalendarDays size={14} />}
-            />
+            <DetailRow label="Created At" value={formatDate(rental.created_at)} icon={<CalendarDays size={14} />} />
           </div>
 
-          {/* ── Action buttons ───────────────────────────────── */}
           <div className="px-6 pb-6 pt-3 flex flex-col gap-3">
 
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
@@ -200,21 +194,11 @@ const OwnerRentalDetails = () => {
             {rental.status === "active" && !rental.termination_effective_date && (
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                 <Button
-                  onClick={handleTerminate}
-                  disabled={terminating}
+                  onClick={() => setTerminateModal(true)}
                   className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm rounded-btn flex items-center justify-center gap-2"
                 >
-                  {terminating ? (
-                    <span className="flex items-center gap-2">
-                      <span className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      Scheduling...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <AlertTriangle size={15} />
-                      Schedule Termination
-                    </span>
-                  )}
+                  <AlertTriangle size={15} />
+                  Schedule Termination
                 </Button>
               </motion.div>
             )}
@@ -222,21 +206,11 @@ const OwnerRentalDetails = () => {
             {(rental.status === "terminated" || rental.status === "cancelled") && (
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                 <Button
-                  onClick={handleDelete}
-                  disabled={deleting}
+                  onClick={() => setDeleteModal(true)}
                   className="w-full h-12 border border-red-200 text-red-600 hover:bg-red-50 bg-white font-semibold text-sm rounded-btn flex items-center justify-center gap-2"
                 >
-                  {deleting ? (
-                    <span className="flex items-center gap-2">
-                      <span className="size-4 rounded-full border-2 border-red-300 border-t-red-600 animate-spin" />
-                      Deleting...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Trash2 size={15} />
-                      Delete Rental
-                    </span>
-                  )}
+                  <Trash2 size={15} />
+                  Delete Rental
                 </Button>
               </motion.div>
             )}

@@ -11,6 +11,7 @@ import {
 import { getProperty, ownerDeleteProperty } from "@/services/ownerPropertyThunks.js"
 import { Button } from "@/components/ui/button"
 import { PropertyDetailsSkeleton } from "@/components/custom/skeletons/index.jsx"
+import ConfirmModal from "@/components/custom/ConfirmModal.jsx"
 
 const DetailRow = ({ icon, label, value }) => (
   <div className="flex items-center justify-between gap-4 py-3.5 border-b border-beige-card/60 last:border-0">
@@ -23,21 +24,24 @@ const DetailRow = ({ icon, label, value }) => (
 )
 
 const PropertyDetails = () => {
-  const dispatch  = useDispatch()
-  const navigate  = useNavigate()
+  const dispatch   = useDispatch()
+  const navigate   = useNavigate()
   const { propertyId } = useParams()
-  const [deleting, setDeleting] = useState(false)
 
   const { property, loading } = useSelector((state) => state.property)
+
+  const [modal,    setModal]    = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     dispatch(getProperty(propertyId))
   }, [dispatch, propertyId])
 
-  const handleDelete = async () => {
+  const handleConfirmDelete = async () => {
     setDeleting(true)
     await dispatch(ownerDeleteProperty(propertyId))
     setDeleting(false)
+    setModal(false)
     navigate("/owner/properties")
   }
 
@@ -46,7 +50,15 @@ const PropertyDetails = () => {
   return (
     <div className="min-h-screen bg-cream-bg font-montserrat">
 
-      {/* ── Hero image ────────────────────────────────────── */}
+      <ConfirmModal
+        isOpen={modal}
+        onClose={() => setModal(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+        title="Delete Property"
+        description={`Are you sure you want to delete "${property.title}"? This will permanently remove the property and all associated rental agreements.`}
+      />
+
       {property.image_url && (
         <div className="relative h-90 overflow-hidden">
           <img src={property.image_url} alt={property.title} className="w-full h-full object-cover" />
@@ -80,7 +92,6 @@ const PropertyDetails = () => {
           </button>
         )}
 
-        {/* ── Availability badge + price ─────────────────── */}
         <motion.div
           className="flex items-center justify-between"
           initial={{ opacity: 0, y: 16 }}
@@ -106,7 +117,6 @@ const PropertyDetails = () => {
           </div>
         </motion.div>
 
-        {/* ── Description ───────────────────────────────── */}
         {property.description && (
           <motion.div
             className="bg-white rounded-card shadow-card p-5"
@@ -119,7 +129,6 @@ const PropertyDetails = () => {
           </motion.div>
         )}
 
-        {/* ── Details ───────────────────────────────────── */}
         <motion.div
           className="bg-white rounded-card shadow-card overflow-hidden"
           initial={{ opacity: 0, y: 16 }}
@@ -130,24 +139,23 @@ const PropertyDetails = () => {
             <p className="text-xs font-bold text-brown-muted uppercase tracking-widest">Property Details</p>
           </div>
           <div className="px-6 py-2">
-            <DetailRow icon={<BedDouble size={14} />}    label="BHK"              value={`${property.bhk} BHK`} />
-            <DetailRow icon={<Sofa size={14} />}         label="Furnishing"        value={property.furnishing ?? "—"} />
-            <DetailRow icon={<Home size={14} />}         label="Total Rooms"       value={property.total_rooms} />
-            <DetailRow icon={<CheckCircle2 size={14} />} label="Available Rooms"   value={property.available_rooms} />
-            <DetailRow icon={<Shield size={14} />}       label="Security Deposit"  value={`₹${Number(property.security_deposit).toLocaleString("en-IN")}`} />
-            <DetailRow icon={<CalendarDays size={14} />} label="Notice Period"     value={`${property.notice_period_days} days`} />
+            <DetailRow icon={<BedDouble size={14} />}    label="BHK"             value={`${property.bhk} BHK`} />
+            <DetailRow icon={<Sofa size={14} />}         label="Furnishing"       value={property.furnishing ?? "—"} />
+            <DetailRow icon={<Home size={14} />}         label="Total Rooms"      value={property.total_rooms} />
+            <DetailRow icon={<CheckCircle2 size={14} />} label="Available Rooms"  value={property.available_rooms} />
+            <DetailRow icon={<Shield size={14} />}       label="Security Deposit" value={`₹${Number(property.security_deposit).toLocaleString("en-IN")}`} />
+            <DetailRow icon={<CalendarDays size={14} />} label="Notice Period"    value={`${property.notice_period_days} days`} />
             {property.is_shared && (
               <>
-                <DetailRow icon={<Users size={14} />}    label="Max Tenants"       value={property.max_tenants} />
-                <DetailRow icon={<Users size={14} />}    label="Current Tenants"   value={property.current_tenants} />
+                <DetailRow icon={<Users size={14} />} label="Max Tenants"     value={property.max_tenants} />
+                <DetailRow icon={<Users size={14} />} label="Current Tenants" value={property.current_tenants} />
               </>
             )}
-            <DetailRow icon={<MapPin size={14} />}       label="Address"           value={property.address} />
-            <DetailRow icon={<MapPin size={14} />}       label="Pincode"           value={property.pincode} />
+            <DetailRow icon={<MapPin size={14} />} label="Address" value={property.address} />
+            <DetailRow icon={<MapPin size={14} />} label="Pincode" value={property.pincode} />
           </div>
         </motion.div>
 
-        {/* ── Action buttons ────────────────────────────── */}
         <motion.div
           className="flex gap-3"
           initial={{ opacity: 0, y: 16 }}
@@ -166,21 +174,11 @@ const PropertyDetails = () => {
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
             <Button
               variant="outline"
-              onClick={handleDelete}
-              disabled={deleting}
+              onClick={() => setModal(true)}
               className="h-12 px-5 rounded-btn border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm flex items-center justify-center gap-2"
             >
-              {deleting ? (
-                <span className="flex items-center gap-2">
-                  <span className="size-4 rounded-full border-2 border-red-300 border-t-red-600 animate-spin" />
-                  Deleting...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Trash2 size={15} />
-                  Delete
-                </span>
-              )}
+              <Trash2 size={15} />
+              Delete
             </Button>
           </motion.div>
         </motion.div>

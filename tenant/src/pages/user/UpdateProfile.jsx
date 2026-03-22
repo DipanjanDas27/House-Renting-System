@@ -3,25 +3,38 @@ import { useForm } from "react-hook-form"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { motion } from "motion/react"
-import { User, Mail, Phone, ImagePlus, ArrowLeft, Trash2, Save } from "lucide-react"
+import { User, Mail, Phone, ImagePlus, Save, Trash2, ArrowLeft } from "lucide-react"
 
 import { getCurrentUser, updateProfile, updateProfileImage, deleteAccount } from "@/services/userThunks.js"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import logo from "/logo.svg"
+import { ProfileSkeleton } from "@/components/custom/skeletons/index.jsx"
+import ConfirmModal from "@/components/custom/ConfirmModal.jsx"
+
+const FormField = ({ label, icon, error, children }) => (
+  <div className="space-y-1.5">
+    <Label className="text-sm font-bold text-brown-dark flex items-center gap-1.5">
+      {icon}
+      {label}
+    </Label>
+    {children}
+    {error && <p className="text-xs font-semibold text-red-500">{error}</p>}
+  </div>
+)
 
 const UpdateProfile = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { user, loading } = useSelector((state) => state.auth)
 
-  const { user } = useSelector((state) => state.auth)
-  const { loading, error } = useSelector((state) => state.user)
+  const [file,         setFile]         = useState(null)
+  const [preview,      setPreview]      = useState(null)
+  const [deleting,     setDeleting]     = useState(false)
+  const [imageLoading, setImageLoading] = useState(false)
+  const [modal,        setModal]        = useState(false)
 
-  const [file,    setFile]    = useState(null)
-  const [preview, setPreview] = useState(null)
-
-  const { register, handleSubmit, reset, formState: { isValid, errors } } = useForm({ mode: "onChange" })
+  const { register, handleSubmit, reset, formState: { errors, isValid } } = useForm({ mode: "onChange" })
 
   useEffect(() => {
     if (!user) dispatch(getCurrentUser())
@@ -47,180 +60,129 @@ const UpdateProfile = () => {
     try {
       await dispatch(updateProfile(data)).unwrap()
       if (file) {
+        setImageLoading(true)
         const formData = new FormData()
         formData.append("profileImage", file)
         await dispatch(updateProfileImage(formData)).unwrap()
+        setImageLoading(false)
       }
       navigate("/profile")
     } catch {}
   }
 
-  const handleDeleteAccount = async () => {
+  const handleConfirmDelete = async () => {
+    setDeleting(true)
     try {
       await dispatch(deleteAccount(user.id)).unwrap()
       navigate("/login")
     } catch {}
+    setDeleting(false)
+    setModal(false)
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-cream-bg flex items-center justify-center font-montserrat">
-        <div className="flex flex-col items-center gap-3">
-          <span className="size-8 rounded-full border-2 border-beige-card border-t-brown-dark animate-spin" />
-          <p className="text-sm font-semibold text-brown-muted">Loading profile...</p>
-        </div>
-      </div>
-    )
-  }
-
-  const fieldAnim = (delay) => ({
-    initial: { opacity: 0, x: -20 },
-    animate: { opacity: 1, x: 0 },
-    transition: { delay, duration: 0.45 },
-  })
+  if (!user || loading) return <ProfileSkeleton />
 
   return (
     <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
+
+      <ConfirmModal
+        isOpen={modal}
+        onClose={() => setModal(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+        title="Delete Account"
+        description="This will permanently delete your account including all rentals, payments and profile data. This action cannot be undone."
+        confirmLabel="Delete Account"
+      />
+
       <motion.div
         className="max-w-lg mx-auto"
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 0.68, 0, 1.1] }}
       >
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm font-bold text-brown-muted hover:text-brown-dark transition-colors duration-150 mb-6"
+        >
+          <ArrowLeft size={16} />
+          Back to Profile
+        </button>
+
         <div className="bg-white rounded-card shadow-card-md overflow-hidden">
 
-          <div className="bg-beige-card px-8 py-6 flex items-center gap-4">
-            <div className="size-12 rounded-btn bg-white flex items-center justify-center shadow-card shrink-0">
+          <div className="bg-beige-card px-6 py-5 flex items-center gap-3">
+            <div className="size-11 rounded-btn bg-white flex items-center justify-center">
               <User size={20} className="text-brown-dark" />
             </div>
             <div>
-              <img
-                src={logo}
-                alt="Dwellio"
-                className="h-5 w-auto mb-1 cursor-pointer"
-                onClick={() => navigate("/")}
-              />
-              <h1 className="text-xl font-extrabold text-brown-dark leading-none">Update Profile</h1>
-              <p className="text-xs font-semibold text-brown-muted mt-1">Edit your personal information</p>
+              <p className="text-xs font-semibold text-brown-muted leading-none mb-1">Account</p>
+              <p className="text-base font-extrabold text-brown-dark leading-none">Update Profile</p>
             </div>
           </div>
 
-          <div className="px-8 py-7 space-y-6">
+          <div className="px-6 py-6 space-y-6">
 
-            <motion.div
-              className="flex flex-col items-center gap-4"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.15, duration: 0.45 }}
-            >
+            <div className="flex flex-col items-center gap-3">
               <div className="relative">
                 {preview ? (
-                  <img
-                    src={preview}
-                    alt="Profile preview"
-                    className="size-24 rounded-full object-cover border-4 border-beige-card shadow-card"
-                  />
+                  <img src={preview} alt="Preview" className="size-24 rounded-full object-cover border-4 border-beige-card shadow-card" />
                 ) : (
                   <div className="size-24 rounded-full bg-beige-card flex items-center justify-center border-4 border-white shadow-card">
                     <User size={32} className="text-brown-muted" />
                   </div>
                 )}
                 <label
-                  htmlFor="profile-image-upload"
-                  className="absolute -bottom-1 -right-1 size-8 rounded-full bg-brown-dark flex items-center justify-center cursor-pointer shadow-card hover:bg-[#1a0f09] transition-colors duration-150"
+                  htmlFor="avatar-upload"
+                  className="absolute -bottom-1 -right-1 size-8 rounded-full bg-brown-dark flex items-center justify-center cursor-pointer hover:bg-[#1a0f09] transition-colors shadow-card"
                 >
                   <ImagePlus size={14} className="text-white" />
                 </label>
-                <input
-                  id="profile-image-upload"
-                  type="file"
-                  accept="image/png, image/jpeg, image/jpg, image/webp"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
+                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
               <p className="text-xs font-semibold text-brown-muted">
-                {file ? file.name : "Click the icon to change photo"}
+                {file ? file.name : "Click icon to change photo"}
               </p>
-            </motion.div>
+            </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-              <motion.div className="space-y-1.5" {...fieldAnim(0.22)}>
-                <Label className="text-sm font-bold text-brown-dark">Full Name</Label>
-                <div className="relative">
-                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brown-muted" />
-                  <Input
-                    placeholder="Your full name"
-                    className="pl-10 h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold placeholder:text-brown-muted/60 focus-visible:ring-brown-dark/30 focus-visible:border-brown-dark"
-                    {...register("full_name", { required: "Name is required" })}
-                  />
-                </div>
-                {errors.full_name && (
-                  <p className="text-xs font-semibold text-red-500">{errors.full_name.message}</p>
-                )}
-              </motion.div>
+              <FormField label="Full Name" icon={<User size={14} className="text-brown-muted" />} error={errors.full_name?.message}>
+                <Input
+                  className="h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold focus-visible:ring-brown-dark/30"
+                  {...register("full_name", { required: "Name is required" })}
+                />
+              </FormField>
 
-              <motion.div className="space-y-1.5" {...fieldAnim(0.29)}>
-                <Label className="text-sm font-bold text-brown-dark">Email</Label>
-                <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brown-muted" />
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    className="pl-10 h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold placeholder:text-brown-muted/60 focus-visible:ring-brown-dark/30 focus-visible:border-brown-dark"
-                    {...register("email", { required: "Email is required" })}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-xs font-semibold text-red-500">{errors.email.message}</p>
-                )}
-              </motion.div>
+              <FormField label="Email" icon={<Mail size={14} className="text-brown-muted" />} error={errors.email?.message}>
+                <Input
+                  type="email"
+                  className="h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold focus-visible:ring-brown-dark/30"
+                  {...register("email", { required: "Email is required" })}
+                />
+              </FormField>
 
-              <motion.div className="space-y-1.5" {...fieldAnim(0.36)}>
-                <Label className="text-sm font-bold text-brown-dark">Phone</Label>
-                <div className="relative">
-                  <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brown-muted" />
-                  <Input
-                    placeholder="+91 98765 43210"
-                    className="pl-10 h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold placeholder:text-brown-muted/60 focus-visible:ring-brown-dark/30 focus-visible:border-brown-dark"
-                    {...register("phone", { required: "Phone is required" })}
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="text-xs font-semibold text-red-500">{errors.phone.message}</p>
-                )}
-              </motion.div>
+              <FormField label="Phone" icon={<Phone size={14} className="text-brown-muted" />} error={errors.phone?.message}>
+                <Input
+                  className="h-12 bg-beige-input border-beige-card rounded-btn text-brown-dark font-semibold focus-visible:ring-brown-dark/30"
+                  {...register("phone", { required: "Phone is required" })}
+                />
+              </FormField>
 
-              {error && (
-                <motion.p
-                  className="text-xs font-semibold text-red-500 text-center bg-red-50 border border-red-200 rounded-btn py-2.5 px-4"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  {error}
-                </motion.p>
-              )}
-
-              <motion.div
-                className="pt-2"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.44, duration: 0.45 }}
-              >
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                 <Button
                   type="submit"
-                  disabled={!isValid || loading}
-                  className="w-full h-12 bg-brown-dark hover:bg-[#1a0f09] text-white font-semibold text-base rounded-btn transition-colors duration-150 flex items-center justify-center gap-2"
+                  disabled={!isValid || loading || imageLoading}
+                  className="w-full h-12 bg-brown-dark hover:bg-[#1a0f09] text-white font-semibold text-sm rounded-btn flex items-center justify-center gap-2"
                 >
-                  {loading ? (
+                  {loading || imageLoading ? (
                     <span className="flex items-center gap-2">
                       <span className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      Updating...
+                      Saving...
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <Save size={16} />
+                      <Save size={15} />
                       Save Changes
                     </span>
                   )}
@@ -229,32 +191,19 @@ const UpdateProfile = () => {
 
             </form>
 
-            <motion.div
-              className="space-y-3 pt-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.52, duration: 0.4 }}
-            >
-              <div className="h-px bg-beige-card" />
-
-              <Button
-                variant="outline"
-                className="w-full h-12 border-beige-card text-brown-dark font-semibold text-base rounded-btn hover:bg-beige-input transition-colors duration-150 flex items-center justify-center gap-2"
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft size={15} />
-                Go Back
-              </Button>
-
-              <Button
-                variant="destructive"
-                className="w-full h-12 font-semibold text-base rounded-btn flex items-center justify-center gap-2"
-                onClick={handleDeleteAccount}
-              >
-                <Trash2 size={15} />
-                Delete Account
-              </Button>
-            </motion.div>
+            <div className="pt-2 border-t border-beige-card">
+              <p className="text-xs font-bold text-brown-muted uppercase tracking-widest mb-3">Danger Zone</p>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                <Button
+                  type="button"
+                  onClick={() => setModal(true)}
+                  className="w-full h-12 border border-red-200 bg-white text-red-600 hover:bg-red-50 font-semibold text-sm rounded-btn flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={15} />
+                  Delete Account
+                </Button>
+              </motion.div>
+            </div>
 
           </div>
         </div>

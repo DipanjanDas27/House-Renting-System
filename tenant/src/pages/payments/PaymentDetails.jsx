@@ -1,12 +1,16 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion } from "motion/react"
-import { CreditCard, CheckCircle2, Clock, XCircle, Trash2, ArrowLeft, Hash, IndianRupee, CalendarDays, Link } from "lucide-react"
+import {
+  CreditCard, CheckCircle2, Clock, XCircle,
+  Trash2, ArrowLeft, Hash, IndianRupee, CalendarDays, Link
+} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { getPaymentById, deletePayment } from "@/services/tenantPaymentThunks.js"
 import { Button } from "@/components/ui/button"
+import ConfirmModal from "@/components/custom/ConfirmModal.jsx"
 
 const STATUS_CONFIG = {
   success:  { icon: <CheckCircle2 size={14} />, classes: "bg-green-50 text-green-700 border border-green-200"  },
@@ -45,12 +49,18 @@ const PaymentDetails = () => {
   const navigate      = useNavigate()
   const { paymentDetails, loading } = useSelector((state) => state.payment)
 
+  const [modal,    setModal]    = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   useEffect(() => {
     dispatch(getPaymentById(paymentId))
   }, [dispatch, paymentId])
 
-  const handleDelete = async () => {
+  const handleConfirmDelete = async () => {
+    setDeleting(true)
     await dispatch(deletePayment(paymentId))
+    setDeleting(false)
+    setModal(false)
     navigate("/payments")
   }
 
@@ -89,6 +99,16 @@ const PaymentDetails = () => {
 
   return (
     <div className="min-h-screen bg-cream-bg px-4 py-10 font-montserrat">
+
+      <ConfirmModal
+        isOpen={modal}
+        onClose={() => setModal(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+        title="Delete Failed Payment"
+        description="This will permanently delete this failed payment record. You can retry the payment after deletion if needed."
+      />
+
       <motion.div
         className="max-w-lg mx-auto"
         initial={{ opacity: 0, y: 32 }}
@@ -122,66 +142,28 @@ const PaymentDetails = () => {
           </div>
 
           <div className="px-6 py-2">
-            <DetailRow
-              icon={<IndianRupee size={14} />}
-              label="Amount"
-              value={`₹${Number(paymentDetails.amount).toLocaleString("en-IN")}`}
-            />
-            <DetailRow
-              icon={<CheckCircle2 size={14} />}
-              label="Status"
-              value={paymentDetails.payment_status}
-            />
-            <DetailRow
-              icon={<CreditCard size={14} />}
-              label="Payment Type"
-              value={paymentDetails.payment_type === "monthly" ? "Monthly Rent" : "Security Deposit"}
-            />
+            <DetailRow icon={<IndianRupee size={14} />}   label="Amount"       value={`₹${Number(paymentDetails.amount).toLocaleString("en-IN")}`} />
+            <DetailRow icon={<CheckCircle2 size={14} />}  label="Status"       value={paymentDetails.payment_status} />
+            <DetailRow icon={<CreditCard size={14} />}    label="Payment Type" value={paymentDetails.payment_type === "monthly" ? "Monthly Rent" : "Security Deposit"} />
             {paymentDetails.payment_type === "monthly" && paymentDetails.month_year && (
-              <DetailRow
-                icon={<CalendarDays size={14} />}
-                label="Month"
-                value={paymentDetails.month_year}
-              />
+              <DetailRow icon={<CalendarDays size={14} />} label="Month"       value={paymentDetails.month_year} />
             )}
             {paymentDetails.due_date && (
-              <DetailRow
-                icon={<CalendarDays size={14} />}
-                label="Due Date"
-                value={formatDate(paymentDetails.due_date)}
-              />
+              <DetailRow icon={<CalendarDays size={14} />} label="Due Date"    value={formatDate(paymentDetails.due_date)} />
             )}
-            <DetailRow
-              icon={<Hash size={14} />}
-              label="Transaction ID"
-              value={paymentDetails.transaction_id || "Not generated"}
-              mono
-            />
-            <DetailRow
-              icon={<Link size={14} />}
-              label="Agreement ID"
-              value={paymentDetails.agreement_id || "—"}
-              mono
-            />
-            <DetailRow
-              icon={<CalendarDays size={14} />}
-              label="Created At"
-              value={formatDate(paymentDetails.created_at)}
-            />
-            <DetailRow
-              icon={<CalendarDays size={14} />}
-              label="Updated At"
-              value={formatDate(paymentDetails.updated_at)}
-            />
+            <DetailRow icon={<Hash size={14} />}          label="Transaction ID" value={paymentDetails.transaction_id || "Not generated"} mono />
+            <DetailRow icon={<Link size={14} />}          label="Agreement ID"   value={paymentDetails.agreement_id || "—"} mono />
+            <DetailRow icon={<CalendarDays size={14} />}  label="Created At"   value={formatDate(paymentDetails.created_at)} />
+            <DetailRow icon={<CalendarDays size={14} />}  label="Updated At"   value={formatDate(paymentDetails.updated_at)} />
           </div>
 
           <div className="px-6 pb-6 pt-2 flex gap-3">
             {paymentDetails.payment_status === "failed" && (
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                 <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                  className="h-11 px-5 rounded-btn font-semibold text-sm flex items-center gap-2"
+                  variant="outline"
+                  onClick={() => setModal(true)}
+                  className="h-11 px-5 rounded-btn border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm flex items-center gap-2"
                 >
                   <Trash2 size={15} />
                   Delete Failed Payment
