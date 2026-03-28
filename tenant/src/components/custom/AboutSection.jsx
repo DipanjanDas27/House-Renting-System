@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react"
 import { motion, useInView } from "motion/react"
 
-const ABOUT_IMG ="/mask_group.png"
+const ABOUT_IMG = "/Mask group.png"
 const FALLBACK =
   "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=900&q=80"
 

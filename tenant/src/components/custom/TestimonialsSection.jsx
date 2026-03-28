@@ -11,8 +11,8 @@ import {
 
 const REVIEWS = [
   {
-    bg:       "https://www.figma.com/api/mcp/asset/19aa08ea-312c-418f-8d84-fcbaf0ba5023",
-    avatar:   "https://randomuser.me/api/portraits/women/74.jpg",
+    bg: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
+    avatar: "https://randomuser.me/api/portraits/women/74.jpg",
     avatarFb: "https://randomuser.me/api/portraits/women/74.jpg",
     name: "Priya Sharma",
     city: "Mumbai",
@@ -20,8 +20,8 @@ const REVIEWS = [
     text: "Dwello truly cares about their clients. They listened to my needs and helped me find the perfect flat in Bandra. Their professionalism and attention to detail are unmatched.",
   },
   {
-    bg:       "https://www.figma.com/api/mcp/asset/26e7d7bc-ad07-4774-ba8c-8bb2cdfb64cd",
-    avatar:   "https://randomuser.me/api/portraits/men/77.jpg",
+    bg: "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&q=80",
+    avatar: "https://randomuser.me/api/portraits/men/77.jpg",
     avatarFb: "https://randomuser.me/api/portraits/men/77.jpg",
     name: "Arjun Mehta",
     city: "Bengaluru",
@@ -29,8 +29,8 @@ const REVIEWS = [
     text: "Fantastic experience working with Dwello. Their expertise and personalized service exceeded my expectations. Found my dream home in Koramangala swiftly!",
   },
   {
-    bg:       "https://www.figma.com/api/mcp/asset/3b780826-352d-41c3-b126-54e7f1bca83c",
-    avatar:   "https://randomuser.me/api/portraits/women/56.jpg",
+    bg: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
+    avatar: "https://randomuser.me/api/portraits/women/56.jpg",
     avatarFb: "https://randomuser.me/api/portraits/women/56.jpg",
     name: "Ananya Iyer",
     city: "Hyderabad",
@@ -38,8 +38,8 @@ const REVIEWS = [
     text: "Dwello made my dream of owning a home a reality! Guided me through every step. I couldn't be happier with my new villa in Jubilee Hills!",
   },
   {
-    bg:       "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=60",
-    avatar:   "https://randomuser.me/api/portraits/men/43.jpg",
+    bg: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=60",
+    avatar: "https://randomuser.me/api/portraits/men/43.jpg",
     avatarFb: "https://randomuser.me/api/portraits/men/43.jpg",
     name: "Rohan Verma",
     city: "Pune",
@@ -47,8 +47,8 @@ const REVIEWS = [
     text: "The team at Dwello was incredibly patient and thorough. They helped me compare over 12 properties before I found my perfect 3BHK in Kothrud. Highly recommend!",
   },
   {
-    bg:       "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=60",
-    avatar:   "https://randomuser.me/api/portraits/women/39.jpg",
+    bg: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=60",
+    avatar: "https://randomuser.me/api/portraits/women/39.jpg",
     avatarFb: "https://randomuser.me/api/portraits/women/39.jpg",
     name: "Sneha Kapoor",
     city: "Delhi",
