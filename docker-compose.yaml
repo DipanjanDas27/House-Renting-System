@@ -63,7 +63,7 @@ services:
 
 volumes:
   pgdata:
-
+  pgadmin_data:
 
 networks:
   app_network:
