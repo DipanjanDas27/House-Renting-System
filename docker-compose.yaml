@@ -6,11 +6,11 @@ services:
     env_file:
       - ./backend/.env
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql        
     networks:
       - app_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U dipanjan -d house_rent"]   
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,7 +44,7 @@ services:
     networks:
       - app_network
 
-  pgadmin:   
+  pgadmin:
     image: dpage/pgadmin4:latest
     container_name: house_rent_pgadmin
     restart: always
