@@ -111,7 +111,7 @@ const PropertyDetails = () => {
                 {FURNISHING_LABEL[property.furnishing] ?? property.furnishing}
               </span>
             </div>
-            <h1 className="text-3xl font-extrabold text-white leading-tight drop-shadow">
+            <h1 className="text-3xl font-extrabold text-white leading-tight">
               {property.title}
             </h1>
             <p className="text-sm font-semibold text-white/80 mt-1 flex items-center gap-1.5">

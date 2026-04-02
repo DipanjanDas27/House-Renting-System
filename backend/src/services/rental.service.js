@@ -100,7 +100,7 @@ export const createRentalService = async ({
       payment_type: "security",
       idempotency_key,
     }, client)
-
+    console.log("rental and payment initiated")
     await client.query("COMMIT")
 
     await sendMail({ to: tenant.email, subject: "Rental Request Submitted - Dwellio", html: rentalCreatedTemplate() })
@@ -108,6 +108,8 @@ export const createRentalService = async ({
     await sendMail({ to: tenant.email, subject: "Payment Initiated - Dwellio", html: paymentCreatedTemplate(lockedProperty.security_deposit) })
 
   } catch (error) {
+    console.error("CATCH ERROR:", error.message)
+    console.error("STACK:", error.stack)
     await client.query("ROLLBACK")
     throw error
   } finally {
@@ -128,6 +130,7 @@ export const createRentalService = async ({
 
     if (!gatewayResponse || gatewayResponse.status !== "success") {
       await updatePaymentStatus(payment.id, "failed", null, updateClient)
+      console.log("payment failed")
       await updateClient.query("COMMIT")
       await sendMail({ to: tenant.email, subject: "Payment Failed - Dwellio", html: paymentFailedTemplate(lockedProperty.security_deposit) })
       return { rental_status: "pending", payment_status: "failed", rental }
@@ -163,7 +166,7 @@ export const createRentalService = async ({
 
     await updateRentalAfterPayment(rental.id, updateClient)
 
-
+    console.log("rental activated,payment done")
     // ── COMMIT before createMonthlyPayment which uses pool directly ──
     await updateClient.query("COMMIT")
 
@@ -208,7 +211,7 @@ export const createRentalService = async ({
   await sendMail({ to: tenant.email, subject: "Rental Activated - Dwellio", html: rentalActivatedTemplate() })
   await sendMail({ to: owner.email, subject: "Your Property Is Now Rented - Dwellio", html: ownerRentalActivatedTemplate(lockedProperty.title) })
   await sendMail({ to: tenant.email, subject: `Monthly Rent Due for ${monthYear} - Dwellio`, html: monthlyPaymentDueTemplate(Number(monthly_rent), monthYear) })
-
+  console.log("monthly payment created successfully")
   return {
     rental_status: "active",
     rental,
